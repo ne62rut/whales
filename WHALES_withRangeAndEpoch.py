@@ -105,7 +105,11 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':           
             tau=3.125*320/480
             Theta=0.605 *np.pi/180
-            SigmaP=0.53*tau         
+            SigmaP=0.513*tau
+        if mission.lower() == 'cs2_lrm':
+            tau=3.125 #gate spacing in ns
+            Theta=1.1992 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
+            SigmaP=0.513*tau             
  
        
         Gamma=0.5 * (1/math.log(2))*np.sin(Theta)*np.sin(Theta) # antenna beamwidth parameter
@@ -171,7 +175,10 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             nominal_tracking_gate=31
         if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm': 
             tau=3.03
-            nominal_tracking_gate=33        
+            nominal_tracking_gate=33
+        if mission.lower() == 'cs2_lrm':
+            tau=3.125 #gate spacing in ns
+            nominal_tracking_gate=64            
         
         t0=x[0] # ns
         Sigma=x[1]
@@ -290,12 +297,28 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         # weights, whose distribution might change if we oversample the waveform.             
             
         if mission.lower() == 'envisat':
-                print "Mission not yet supported"
-                sys.exit(0)
+                index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
+                total_gate_number=128                
+                noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
+                tau=3.125 #gate width in nanoseconds
+                startgate=4 #First gate to be considered in the retracking window
+                ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                                #after the middle of the leading edge
+                ALEScoeff1=3.86 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
+                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory
 
         elif mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
-                print "Mission not yet supported"
-                sys.exit(0)                
+                index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
+                total_gate_number=128                
+                noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
+                tau=3.125*320/480 #gate width in nanoseconds
+                startgate=4 #First gate to be considered in the retracking window
+                ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                                #after the middle of the leading edge
+                ALEScoeff1=3.86 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
+                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory              
 
    
         elif mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3': 
@@ -310,7 +333,17 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory
 
-                
+        elif mission.lower() == 'cs2_lrm' :
+                index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
+                total_gate_number=128                
+                noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
+                tau=3.125 #gate width in nanoseconds
+                startgate=4 #First gate to be considered in the retracking window
+                ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                                #after the middle of the leading edge
+                ALEScoeff1=3.86 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
+                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory                 
 
 
         elif mission.lower() == 'ers2_r': 
