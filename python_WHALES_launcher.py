@@ -49,14 +49,22 @@ saving_directory= ''
 #CS-2 test file
 filename='CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
 
+# Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm
 mission='cs2_lrm'
+
+
+
+
+
+
+
 
 cal2='on'
 
 add_instr_corr_SWH = 'no'
 import_weights= 'yes'
 
-interpolation_factor=1 #Choose whether waveform is oversampled or not
+
 
 
 # Application of CAL-2 where known
@@ -192,8 +200,16 @@ elif mission in ['envisat']:
     #S_landmask=np.ma.getdata( S.variables['surf_type_20'][:] )
     #S_landmask=np.reshape(S_landmask,(np.shape(S_time)[0],1) )
     
-    S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_ocean_20_ku'][:] )     #degrees^2
-    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+    #OFF NADIR ANGLE FROM WAVEFORM
+    #S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_ocean_20_ku'][:] )     #degrees^2
+    #S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+    #S_offnadir=S_time*0.0
+    
+    #OFF NADIR ANGLE FROM PLATFORM
+    S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_pf_01'][:] )
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time_1hz)[0],1) )
+    S_offnadir=np.interp(S_time[:,0],S_time_1hz[:,0],S_offnadir[:,0])
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )    
     
     S_atmos_corr=np.ma.getdata( S.variables['atm_cor_sig0_01_ku'][:] )
     S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time_1hz)[0],1) )
@@ -214,7 +230,20 @@ elif mission in ['saral','altika']:
     S_lat=np.ma.getdata( S.variables['lat_40hz'][:] )
     S_lon=np.ma.getdata( S.variables['lon_40hz'][:] )
     S_landmask=np.ma.getdata( S.variables['surface_type'][:] )
-    S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_40hz'][:] )
+    
+    #OFF NADIR ANGLE FROM WAVEFORM
+    #S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_40hz'][:] )
+    ##Unrealistic offnadir angles of value higher than 0.3 degrees, which would affect Range estimation (Dorandeau et al. 2004) are removed
+    ##Note that in Altika there are some values put as 3267, where the retracking of the offnadir likely failed
+    #index_offnadir=np.where(np.abs(S_offnadir)>0.3)[0]
+    #S_offnadir[index_offnadir]=0.
+    ##Off nadir angle field is filtered with an alongtrack filter of 30 seconds as suggested by Amarouche et al. (2004)
+    
+    #OFF NADIR ANGLE FROM PLATFORM
+    S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_pf'][:] )
+    #This field is at 1-Hz, so it has to be reshaped
+    S_offnadir=np.transpose(np.tile(S_offnadir,(np.shape(S_time)[1],1)))    
+    
     S_atmos_corr=np.ma.getdata( S.variables['atmos_corr_sig0'][:] )
     #This field is at 1-Hz, so it has to be reshaped
     S_atmos_corr=np.transpose(np.tile(S_atmos_corr,(np.shape(S_time)[1],1)))
@@ -239,7 +268,7 @@ elif mission in ['cs2_lrm']:
     #S_swh=np.reshape(S_swh,(np.shape(S_time)[0],1) )
     #print(np.shape(S_height))
     
-    S_tracker=np.ma.getdata( S.variables['window_del_20_ku'][:]*(3.0*10**(8))/2.0 )
+    S_tracker=np.ma.getdata( S.variables['window_del_20_ku'][:]*(299792458.0)/2.0 )
     S_tracker=np.reshape(S_tracker,(np.shape(S_time)[0],1) )
     
     #S_range=np.ma.getdata( S.variables['range_ocean_20_ku'][:] )
@@ -259,7 +288,13 @@ elif mission in ['cs2_lrm']:
     
     #S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_ocean_20_ku'][:] )     #degrees^2
     #S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
-    S_offnadir=S_time*0.0
+    
+    #OFF NADIR ANGLE FROM PLATFORM
+    S_offnadir=np.ma.getdata( S.variables['off_nadir_pitch_angle_str_20_ku'][:] )
+    #S_offnadir=np.reshape(S_offnadir,(np.shape(S_time_1hz)[0],1) )
+    #S_offnadir=np.interp(S_time[:,0],S_time_1hz[:,0],S_offnadir[:,0])
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+
     
     #S_atmos_corr=np.ma.getdata( S.variables['atm_cor_sig0_01_ku'][:] )
     #S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time_1hz)[0],1) )
@@ -295,15 +330,14 @@ range_WHALES=np.empty(np.shape(S_time))*np.nan
 
 swh_WHALES_instr_corr=np.empty(np.shape(S_time))*np.nan
 
-print(np.shape(S_time)[0])
-print(np.shape(S_time)[1])
+
 for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.shape(S_time)[0],1)
     
-    print index_waveforms_row    
+    #print index_waveforms_row    
     
     for index_waveforms_col in np.arange(0,np.shape(S_time)[1],1):
 
-        print index_waveforms_col
+        #print index_waveforms_col
 
         #landmask[index_waveforms] = parameters_landmask['mask'][index_waveforms]            
         
@@ -355,7 +389,7 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
             input['mission'] = 'cs2_lrm'            
 
         ' off nadir angle in degree ' 
-        input['xi'] = S_offnadir[index_waveforms_row,index_waveforms_col]
+        input['xi'] =  S_offnadir[index_waveforms_row,index_waveforms_col]
         
         if import_weights == 'yes' :     
             input['weights_flag']=flag_edges
@@ -406,7 +440,7 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
 
 
 #NETCDF CODE
-w_nc_fid = Dataset(saving_directory+'try_'+mission+'.nc', 'w', format='NETCDF3_CLASSIC')              
+w_nc_fid = Dataset(saving_directory+'try_'+mission+'offnadirplatf.nc', 'w', format='NETCDF3_CLASSIC')              
 w_nc_fid.createDimension('time', np.shape(time_20hz)[0])
 w_nc_fid.createDimension('records', np.shape(time_20hz)[1])
 
