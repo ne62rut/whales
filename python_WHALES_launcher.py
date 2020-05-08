@@ -37,26 +37,24 @@ from import_weights_mat import import_weights_mat
 
 
 
-## EXPERIMENTS: '/DGFI34/data/ALES_Python/Reprocessing/prove/'
+## 
 saving_directory= '' 
 
+
+##
+saving_name='try'
+
 # ENVISAT test file
-#filename='ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
+filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
 
 # SARAL test file
-#filename='SRL_GPS_2PTP019_0523_20141222_111417_20141222_120436.CNES.nc'
+#filename='test_files/SRL_GPS_2PTP019_0523_20141222_111417_20141222_120436.CNES.nc'
 
 #CS-2 test file
-filename='CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
+#filename='test_files/CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
 
 # Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm
-mission='cs2_lrm'
-
-
-
-
-
-
+mission='envisat'
 
 
 cal2='on'
@@ -68,35 +66,35 @@ import_weights= 'yes'
 
 
 # Application of CAL-2 where known
-J1_filter = np.loadtxt('J1_MeanFilterKu')
+J1_filter = np.loadtxt('cal2/J1_MeanFilterKu')
 J1_filter_norm = J1_filter / np.mean(J1_filter[11:115]) 
-J2_filter = np.loadtxt('J2_MeanFilterKu')
+J2_filter = np.loadtxt('cal2/J2_MeanFilterKu')
 J2_filter_norm = J2_filter / np.mean(J2_filter[11:115])  
-J3_filter = np.loadtxt('J3_MeanFilterKu')
+J3_filter = np.loadtxt('cal2/J3_MeanFilterKu')
 J3_filter_norm = J3_filter / np.mean(J3_filter[11:115])   
-saral_filter = np.loadtxt('ALK_MeanFilter')
+saral_filter = np.loadtxt('cal2/ALK_MeanFilter')
 saral_filter_norm = saral_filter / np.mean(saral_filter)     
 
 
 #Mission-dependent files to be loaded
 if mission in ['envisat']:
     my_path_instr_corr_SWH='' 
-    my_path_weights='weights_n1.mat'
+    my_path_weights='weights/weights_n1.mat'
 elif mission in ['jason1'] :
-    my_path_instr_corr_SWH='' 
-    my_path_weights='weights.mat'
+    my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_MLE4_jason1SGDRc.mat' 
+    my_path_weights='weights/weights.mat'
 elif mission in ['jason2'] :
-    my_path_instr_corr_SWH='SWHinstrcorr_WHALES_jason2SGDRd.mat' 
-    my_path_weights='weights.mat'
+    my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason2SGDRd.mat' 
+    my_path_weights='weights/weights.mat'
 elif mission in ['jason3'] :
-    my_path_instr_corr_SWH='SWHinstrcorr_WHALES_jason3SGDRd.mat' 
-    my_path_weights='weights.mat'
+    my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat' 
+    my_path_weights='weights/weights.mat'
 elif mission in ['altika','saral'] :  
     my_path_instr_corr_SWH='' 
-    my_path_weights='weights_alt.mat'
+    my_path_weights='weights/weights_alt.mat'
 elif mission in ['cs2_lrm'] :
     my_path_instr_corr_SWH='' 
-    my_path_weights='weights_cs2_lrm.mat'
+    my_path_weights='weights/weights_cs2_lrm.mat'
 
         
   
@@ -440,7 +438,7 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
 
 
 #NETCDF CODE
-w_nc_fid = Dataset(saving_directory+'try_'+mission+'offnadirplatf.nc', 'w', format='NETCDF3_CLASSIC')              
+w_nc_fid = Dataset(saving_directory+saving_name+'.nc', 'w', format='NETCDF3_CLASSIC')              
 w_nc_fid.createDimension('time', np.shape(time_20hz)[0])
 w_nc_fid.createDimension('records', np.shape(time_20hz)[1])
 

@@ -302,9 +302,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 tau=3.125 #gate width in nanoseconds
                 startgate=4 #First gate to be considered in the retracking window
-                ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                ALEScoeff0=2.45 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
-                ALEScoeff1=3.86 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                ALEScoeff1=4.05 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory
 
@@ -314,9 +314,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 tau=3.125*320/480 #gate width in nanoseconds
                 startgate=4 #First gate to be considered in the retracking window
-                ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                ALEScoeff0=2.94 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
-                ALEScoeff1=3.86 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                ALEScoeff1=3.56 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory              
 
@@ -339,9 +339,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 tau=3.125 #gate width in nanoseconds
                 startgate=4 #First gate to be considered in the retracking window
-                ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                ALEScoeff0=3.68 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
-                ALEScoeff1=3.86 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                ALEScoeff1=3.36 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory                 
 

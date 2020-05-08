@@ -29,7 +29,7 @@ To run the retracker, open
 
     $ python_WHALES_launcher.py
 
-Before launching it, select the following parameters: saving_directory (default is the same directory where the launcher is contained),filename (original file to be retracked) and mission (choose between envisat, jason1, jason2, jason3, saral, cs2_lrm).
+Before launching it, select the following parameters: saving_directory (default is the same directory where the launcher is contained), saving_name (please do not add file extension), filename (original file to be retracked) and mission (choose between envisat, jason1, jason2, jason3, saral, cs2_lrm).
 
 The retracker code is contained in:
 
@@ -44,12 +44,12 @@ and an external correction model that associate each value of SWH to the correct
 
     $ SWHinstrcorr_WHALES_jason3SGDRd.mat
     
-Note that the instrumental correction is simply based on the comparison with the one applied in the MLE3 retracker of the standard product. A new correction had to be computed by PML, but the performances were worse (according to the Round Robin results). Also note that Envisat does not have an instrumental correction. 
+Note that the instrumental correction is simply based on the comparison with the one applied in the MLE3 retracker of the standard product. A new correction had to be computed by PML, but the performances were worse (according to the Round Robin results). 
     
     
     
 On the display, you will see a waveform counter for each successful retrack ("Retracking waveform XXXX of YYYY"). Please note that the numbers displayed on the counter are not correct.
-The launcher will save a NetCDF file of the kind produced for the Round Robin. It is already set to work with the following test file from Jason-3:
+The launcher will save a NetCDF file of the kind produced for the Round Robin. It can be tested to work with the following test file from Jason-3:
 
     $ JA3_GPS_2PdP054_149_20170801_175030_20170801_184643.nc
     
