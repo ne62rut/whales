@@ -2,6 +2,7 @@ name: seastatecci_whales
 channels:
 dependencies:
     - python=2.7
+    - pip
     #- os
     - numpy
     - matplotlib
@@ -14,4 +15,5 @@ dependencies:
     #- datetime
     - netcdf4
     - h5py
-    - tables
+    - pip:
+      - install tables

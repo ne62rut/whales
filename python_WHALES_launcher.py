@@ -490,6 +490,12 @@ w_nc_var.setncatts({'long_name': u"epoch_WHALES_20hz",\
                     'comment': u" "})
 w_nc_fid.variables['epoch_WHALES_20hz'][:] = Epoch_WHALES
 
+w_nc_var = w_nc_fid.createVariable('swh_WHALES_qual_20hz', 'f8', ('time','records'),zlib=True)
+w_nc_var.setncatts({'long_name': u"quality flag for Significant waveheight",\
+                    'units': u"count",\
+                    'comment': u"0=Good, 1=Bad"})
+w_nc_fid.variables['swh_WHALES_qual_20hz'][:] = Err_WHALES
+
 
 #
 #w_nc_var = w_nc_fid.createVariable('lat_1hz', 'f8', ('time'),zlib=True,least_significant_digit=4)
