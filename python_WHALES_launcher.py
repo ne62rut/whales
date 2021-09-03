@@ -8,7 +8,7 @@ Works for the following missions:
 
 @author: Marcello Passaro
 """
-
+import argparse
 #import cmath
 import netCDF4
 from netCDF4 import Dataset
@@ -35,27 +35,38 @@ from scipy.io import matlab
 from import_weights_mat import import_weights_mat
 
 
+def get_options():
+    parser = argparse.ArgumentParser(
+        description='Retrack a SGDR file with WHALES')
 
+    parser.add_argument(
+        '-m', '--mission', type=str,
+        choices=['envisat', 'jason1', 'jason2', 'jason3', 'saral', 'cs2_lrm'],
+        help='satellite mission'
+    )
+    parser.add_argument(
+        '-i', '--input', type=str,
+        help='path to the SGDR file'
+    )
+    parser.add_argument(
+        '-o', '--output', type=str, default='.',
+        help='path to the output repository'
+    )
+    return parser.parse_args()
+
+
+options = get_options()
+filename = options.input
+mission = options.mission
+saving_directory = options.output
+
+saving_name = os.path.join(saving_directory, os.path.basename(filename))
 
 ## 
-saving_directory= '' 
 
 
 ##
 saving_name='try'
-
-# ENVISAT test file
-filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
-
-# SARAL test file
-#filename='test_files/SRL_GPS_2PTP019_0523_20141222_111417_20141222_120436.CNES.nc'
-
-#CS-2 test file
-#filename='test_files/CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
-
-# Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm
-mission='envisat'
-
 
 cal2='on'
 
@@ -96,20 +107,25 @@ elif mission in ['cs2_lrm'] :
     my_path_instr_corr_SWH='' 
     my_path_weights='weights/weights_cs2_lrm.mat'
 
-        
-  
-if import_weights == 'yes' :
+if my_path_instr_corr_SWH != '':
+    my_path_instr_corr_SWH = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), my_path_instr_corr_SWH)
+if my_path_weights != '':
+    my_path_weights = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), my_path_weights)
+
+if import_weights == 'yes':
     #LOADMAT
-    #mat_weights = matlab.loadmat(my_path_weights)
-    #residual_std=np.squeeze(mat_weights['residual_tot'])
-    #flag_edges=np.squeeze(mat_weights['flag_edges'])
+    mat_weights = matlab.loadmat(my_path_weights)
+    residual_std = np.squeeze(mat_weights['residual_tot'])
+    flag_edges = np.squeeze(mat_weights['flag_edges'])
     
     #H5PY
     #mat_weights = h5py.File(my_path_weights,'r')
     #residual_std=np.transpose(mat_weights['residual_tot'].value) 
     #flag_edges=np.transpose(mat_weights['flag_edges'].value   )
    
-    residual_std,flag_edges=import_weights_mat(my_path_weights) 
+    #residual_std,flag_edges=import_weights_mat(my_path_weights)
 
 
 # 2) FUNCTION DEFINITIONS
@@ -339,7 +355,8 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
 
         #landmask[index_waveforms] = parameters_landmask['mask'][index_waveforms]            
         
-        print "Retracking waveform  "+ str(index_waveforms_row) +  "  of  " + str(np.size(S_time))  
+        print("Retracking waveform  "+ str(index_waveforms_row) +  "  of  " +
+              str(np.size(S_time)))
         #str(cycle_index) +  "  of  " + str(np.size(cycle_vector)) +"...pass...  "+ str(path_index) +  "  of  " + str(np.size(path_vector))
         
         
@@ -395,11 +412,6 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
                                     
             
         retracker = WHALES_withRangeAndEpoch(input)
-                
-            
-    
-            
-            
 
         #Quality flag of WHALES, based on the normalised fitting error on the leading edge
         if (retracker.Error) > 0.3 and (np.isnan(retracker.Error)==0):                        
@@ -407,9 +419,9 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
         elif retracker.Error<=0.3 :
             Err_WHALES[index_waveforms_row,index_waveforms_col] = 0
 
-        swh_WHALES[index_waveforms_row,index_waveforms_col]               =retracker.SWH
+        swh_WHALES[index_waveforms_row,index_waveforms_col] = retracker.SWH
         
-        Epoch_WHALES[index_waveforms_row,index_waveforms_col]               =retracker.Epoch
+        Epoch_WHALES[index_waveforms_row,index_waveforms_col] = retracker.Epoch
 
         if mission in ['envisat','envisat_over']:
             sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col] -33.1133
@@ -422,10 +434,6 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
         
         Amplitude_WHALES[index_waveforms_row,index_waveforms_col] = retracker.Norm_Amplitude
 
-    
-            
-    
-
         # APPLICATION OF INSTRUMENTAL CORRECTION FOR SWH           
         if add_instr_corr_SWH == 'yes' :
             if counting_swh == 0: 
@@ -433,9 +441,6 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
                 counting_swh = 1
             else :
                 swh_WHALES_instr_corr[index_waveforms_row,index_waveforms_col] ,interpolator_instr_corr_SWH=compute_instr_corr_SWH_WHALES(swh_WHALES[index_waveforms_row,index_waveforms_col],my_path_instr_corr_SWH,mission,interpolator_instr_corr_SWH)               
-
-
-
 
 #NETCDF CODE
 w_nc_fid = Dataset(saving_directory+saving_name+'.nc', 'w', format='NETCDF3_CLASSIC')              
