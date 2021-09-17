@@ -108,14 +108,16 @@ if my_path_weights != '':
 
 if import_weights == 'yes':
     # LOADMAT
-    mat_weights = matlab.loadmat(my_path_weights)
-    residual_std = np.squeeze(mat_weights['residual_tot'])
-    flag_edges = np.squeeze(mat_weights['flag_edges'])
-
-    # H5PY
-    # mat_weights = h5py.File(my_path_weights,'r')
-    # residual_std=np.transpose(mat_weights['residual_tot'].value)
-    # flag_edges=np.transpose(mat_weights['flag_edges'].value   )
+    try:
+        mat_weights = matlab.loadmat(my_path_weights)
+        residual_std = np.squeeze(mat_weights['residual_tot'])
+        flag_edges = np.squeeze(mat_weights['flag_edges'])
+    except:
+        # H5PY
+        import h5py
+        mat_weights = h5py.File(my_path_weights,'r')
+        residual_std=np.transpose(mat_weights['residual_tot'].value)
+        flag_edges=np.transpose(mat_weights['flag_edges'].value   )
 
     # residual_std,flag_edges=import_weights_mat(my_path_weights)
 
