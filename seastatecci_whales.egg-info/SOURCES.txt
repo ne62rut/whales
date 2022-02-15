@@ -1,6 +1,0 @@
-README.md
-setup.py
-seastatecci_whales.egg-info/PKG-INFO
-seastatecci_whales.egg-info/SOURCES.txt
-seastatecci_whales.egg-info/dependency_links.txt
-seastatecci_whales.egg-info/top_level.txt
