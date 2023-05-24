@@ -310,7 +310,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         elif mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
                 index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
                 total_gate_number=128                
-                noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
+                noisegates=10+np.arange(4,10); #gates used to estimate Thermal Noise # changed by Marine
                 tau=3.125*320/480 #gate width in nanoseconds
                 startgate=4 #First gate to be considered in the retracking window
                 ALEScoeff0=2.94 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
@@ -362,6 +362,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
         self.Epoch=np.nan
         self.SWH=np.nan
+        self.SWH_yang=np.nan
         self.Amplitude=np.nan
         self.Error = np.nan                  
         self.range = np.nan                     
@@ -402,7 +403,12 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         edgestart=1
         edgeend=1
         
-        wv=D[index_originalbins]
+        # --- Changed by Marine 
+        # wv=D[index_originalbins] # old version of 'wv'
+        wv0=D[index_originalbins]
+        kernel_size = 3
+        kernel = np.ones(kernel_size) / kernel_size
+        wv = np.convolve(wv0, kernel, mode='same')
         
         Dwv=np.diff(wv)
         i = 4 #Gate where the search starts
@@ -491,12 +497,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                     
             if np.isnan(x1_yang[2])==0 :
                 Epoch_yang,Tau_yang,Sigma_yang,Au_yang=self.Conversion_NMbrown(x1_yang,mission)
-                SWH_yang=SWH #SWH after the first retracking              
+                SWH_yang=SWH #SWH after the first retracking 
+                # self.SWH_yang=SWH_yang #SWH after the first retracking              
                 Sigma0_yang=10*np.log10(Au_yang*normalize_factor) #De-normalise the amplitude and save it as db 
             else:
                     Epoch_yang=np.nan 
                     Tau_yang=np.nan
                     SWH_yang=np.nan
+                    # self.SWH_yang=np.nan
                     Au_yang=np.nan
                     Sigma0_yang=np.nan 
                     Sigma_yang=np.nan
@@ -638,6 +646,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             
             self.Epoch=Epoch_LESfive
             self.SWH=SWH_LESfive  #in m
+            self.SWH_yang=SWH_yang
             self.Sigma=Sigma_LESfive #Rising time of the leading edge in ns
             self.Amplitude=Sigma0_LESfive#  Instead of the normalised amplitude(Au_LESfive), we are outputting the backscatter coefficient (before corrections)
             #self.Norm_Amplitude=Au_LESfive
@@ -651,6 +660,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             self.range = np.nan
             self.uncssh = np.nan            
             self.SWH=np.nan 
+            self.SWH_yang=np.nan
             self.Sigma=np.nan 
             self.Amplitude=np.nan 
             self.Norm_Amplitude=np.nan 
