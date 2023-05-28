@@ -4,7 +4,7 @@ Created on November 2018
 
 The code launches the WHALES retracker using original mission files
 
-Works for the following missions: 
+Works for the following missions: Jason, Jason-2, Jason-3 ... 
 
 @author: Marcello Passaro
 """
@@ -12,15 +12,13 @@ import argparse
 # import cmath
 import netCDF4
 from netCDF4 import Dataset
-# import h5py
+import h5py
 import numpy as np
 import matplotlib
 
 matplotlib.use("Agg")
-# import matplotlib.pyplot as plt
 import scipy.io
 import os
-# import matplotlib.animation as manimation
 import time
 from compute_instr_corr_SWH_WHALES import compute_instr_corr_SWH_WHALES
 # import sys
@@ -70,6 +68,7 @@ add_instr_corr_SWH = 'no'
 import_weights = 'yes'
 
 # Application of CAL-2 where known
+# FA: I would be happy to have more details on this "cal-2" 
 J1_filter = np.loadtxt('cal2/J1_MeanFilterKu')
 J1_filter_norm = J1_filter / np.mean(J1_filter[11:115])
 J2_filter = np.loadtxt('cal2/J2_MeanFilterKu')
@@ -107,17 +106,10 @@ if my_path_weights != '':
         os.path.abspath(os.path.dirname(__file__)), my_path_weights)
 
 if import_weights == 'yes':
-    # LOADMAT
-    try:
-        mat_weights = matlab.loadmat(my_path_weights)
-        residual_std = np.squeeze(mat_weights['residual_tot'])
-        flag_edges = np.squeeze(mat_weights['flag_edges'])
-    except:
-        # H5PY
-        import h5py
-        mat_weights = h5py.File(my_path_weights,'r')
-        residual_std=np.transpose(mat_weights['residual_tot'].value)
-        flag_edges=np.transpose(mat_weights['flag_edges'].value   )
+    import h5py
+    mat_weights = h5py.File(my_path_weights,'r')
+    residual_std=np.transpose(mat_weights['residual_tot'])
+    flag_edges=np.transpose(mat_weights['flag_edges'])
 
     # residual_std,flag_edges=import_weights_mat(my_path_weights)
 
@@ -141,13 +133,12 @@ def wf_reader(filename):
 
 
 # 3) Launcher
-counting = 0  # Only needed to check which is the first waveform to be reprocessed, in order to use the SSB interpolation only once
 counting_swh = 0  # Only needed to check which is the first waveform to be reprocessed, in order to use the swh_instr_corr interpolation only once
 
 S = wf_reader(filename)
 
 if mission in ['jason1', 'jason2', 'jason3']:
-    # HERE ADAPT FOR JASON-3 NAMING
+    # Getting 20 Hz data
     S_time = np.ma.getdata(S.variables['time_20hz'][:])
     S_height = np.ma.getdata(S.variables['alt_20hz'][:])
     S_swh = np.ma.getdata(S.variables['swh_20hz_ku'][:])
@@ -374,17 +365,15 @@ range_WHALES = np.empty(np.shape(S_time)) * np.nan
 
 swh_WHALES_instr_corr = np.empty(np.shape(S_time)) * np.nan
 
+#
+# Now looping over waveforms for retracking
+#
 for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
     for index_waveforms_col in np.arange(0, np.shape(S_time)[1], 1):
-        # landmask[index_waveforms] = parameters_landmask['mask'][index_waveforms]
-
+        
         print("Retracking waveform  " + str(index_waveforms_row) + "  of  " +
               str(np.size(S_time)))
-        # str(cycle_index) +  "  of  " + str(np.size(cycle_vector)) +"...pass...  "+ str(path_index) +  "  of  " + str(np.size(path_vector))
-
-        antenna_ref_point_correction = 0.18092  # See for example: http://www.aviso.oceanobs.com/fileadmin/documents/data/tools/JA2_GDR_D_release_note.pdf
-        # The full reference is  Desjonquerès, J. D., and N. Picot. "OSTM/JASON-2 absolute bias technical note." CNES internal document TP3-JPOS3-NT-1627-CNES (2011).
-
+ 
         input = {}
         if cal2 == 'on':
             if mission == 'jason3':
@@ -480,7 +469,9 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
                     my_path_instr_corr_SWH, mission,
                     interpolator_instr_corr_SWH)
 
-            # NETCDF CODE
+#
+# End of loop: writes all output to NetCDF file
+# 
 w_nc_fid = Dataset(saving_name, 'w',
                    format='NETCDF3_CLASSIC')
 w_nc_fid.createDimension('time', np.shape(time_20hz)[0])
@@ -549,10 +540,5 @@ w_nc_var.setncatts({'long_name': u"quality flag for Significant waveheight", \
                     'comment': u"0=Good, 1=Bad"})
 w_nc_fid.variables['swh_WHALES_qual_20hz'][:] = Err_WHALES
 
-#
-# w_nc_var = w_nc_fid.createVariable('lat_1hz', 'f8', ('time'),zlib=True,least_significant_digit=4)
-# w_nc_var.setncatts({'long_name': u"Latitude",\
-#                    'units': u"deg North"})
-# w_nc_fid.variables['lat_1hz'][:] = lat
 
 w_nc_fid.close()  # close the new file
