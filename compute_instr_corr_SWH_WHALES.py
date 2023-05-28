@@ -12,7 +12,6 @@ import numpy as np
 #import netCDF4
 import pickle
 from datetime import datetime
-from sidereal import *
 import os.path
 from scipy.io import matlab
 

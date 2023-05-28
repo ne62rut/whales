@@ -9,14 +9,12 @@ WHALES Retracker corresponding to the WHALES version of the 4.12.2018, but with 
 """
 
 
-
-#from OpenADB.Retracking import Retracker
-from Retracker_MP import *
+from Retracker_MP    import *
+from waveform_models import myfun_brown_LS
 import scipy
 from scipy import stats
 import cmath #handling of complex square root
 from scipy import optimize
-from scipy.optimize import fmin
 from scipy.optimize import minimize
 from scipy import special
 from scipy import signal
@@ -36,38 +34,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.retrack_MP()
 
 
-    def  myfun_brown_Sigma(self,incognita,data)  :
-        """
-        Brown-Hayne functional form, The unknown parameters in this version (17 Dec 2013) are Epoch, Sigma and Amplitude, where 
-        sigma=( sqrt( (incognita(2)/(2*0.3)) ^2+SigmaP^2) ) is the rising time of the leading edge
-        
-        For the explanation of the terms in the equation, please check "Coastal Altimetry" Book
-        
-        """
-        
-        ydata=data[0] #Waveform coefficients
-        Gamma=data[1]
-        Zeta=data[2]
-        xdata=data[3]  #Epoch
-        SigmaP=data[4]
-        c_xi=data[5]  #Term related to the slope of the trailing edge
-        weights=data[6]  #Weights to apply to the residuals
-        weightflag=data[7]
-            
-        fff = ( incognita[2]/2*np.exp((-4/Gamma)*(np.sin(Zeta))**2) \
-        * np.exp (-  c_xi*( (xdata-incognita[0])-c_xi*incognita[1]**2/2) ) \
-        *   (  1+scipy.special.erf( ((xdata-incognita[0])-c_xi*incognita[1]**2)/((np.sqrt(2)*incognita[1]))  ) ) \
-        )
-        
-
-        cy= (   weights *  ((ydata - fff) **2)).sum()
-        
-        return cy
-        
-
-    def NMbrown_Sigma(self,xdata,ydata,Zeta,altitude,initial_conditions,mission,weights,weightflag) :
-        #Nelder-Mead fit of a waveform modelled by the Brown-Hayne functional
-        #form. For naming explanation see coastal altimetry book
+    def NM_fit(self,xdata,ydata,Zeta,tau,Theta,SigmaP,altitude,initial_conditions,mission,weights,weightflag) :
+        #Nelder-Mead fit of a waveform 
     
         #IT NEEDS:
             #1) xdata in NANOSECONDS (ex. xdata=[0*tau:1:127*tau])
@@ -87,31 +55,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         c=3.0*(10**8) #Light speed
         H=altitude
         Ri=6378.1363*(10**3) #Earth radius
-        
-        #The following parameters should change according to the mission
-        if mission.lower() == 'envisat':
-            tau=3.125 #gate spacing in ns
-            Theta=1.35 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
-            SigmaP=0.53*tau #from Gomez Enri 2006. Otherwise use:%1.6562; %ns =0.53*3.125ns
-        if mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3':           
-            tau=3.125
-            Theta=1.29 *np.pi/180
-            SigmaP=0.513*tau
-        if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm':           
-            tau=3.03
-            Theta=1.3 *np.pi/180
-            SigmaP=0.513*tau    
 
-        if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':           
-            tau=3.125*320/480
-            Theta=0.605 *np.pi/180
-            SigmaP=0.513*tau
-        if mission.lower() == 'cs2_lrm':
-            tau=3.125 #gate spacing in ns
-            Theta=1.1992 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
-            SigmaP=0.513*tau             
- 
-       
         Gamma=0.5 * (1/math.log(2))*np.sin(Theta)*np.sin(Theta) # antenna beamwidth parameter
      
         b_xi = np.cos (2*Zeta) - ((np.sin(2*Zeta))**2)/Gamma
@@ -120,9 +64,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
     
         a=a/1000000000 #/ns
         c_xi=c_xi/1000000000 #1/ns
-        #c_xi_gates=c_xi*tau #in gate units
-        xopt = minimize(self.myfun_brown_Sigma, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,\
-        method='Nelder-Mead',options={'disp': False})
+        xopt = minimize(myfun_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
 
         
         if xopt.success == True:
@@ -158,8 +100,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
     
     def Conversion_NMbrown(self,x,mission) :
         
-        # This function converts the Epoch estimated by NMbrown_Sigma into an Epoch referred to the nominal point of the mission
-        # In input it takes x, the vector of parameters estimated by NMbrown_Sigma            
+        # This function converts the Epoch estimated by NM_fit into an Epoch referred to the nominal point of the mission
+        # In input it takes x, the vector of parameters estimated by NM_fit            
         
         c=0.3 # Light speed divided by a factor 10^-9
         
@@ -466,8 +408,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 this_weights=np.ones(np.shape(xdata))
                 
                 x1_yang, Wt_yang, exitflag_yang, Err, SWH =\
-                        self.NMbrown_Sigma( xdata[startgate:gate2+growingdue+1] , D[startgate:gate2+growingdue+1],\
-                        self.xi*math.pi/180,self.hsat,\
+                        self.NM_fit( xdata[startgate:gate2+growingdue+1] , D[startgate:gate2+growingdue+1],\
+                        self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,\
                         np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag)
 
 
@@ -589,7 +531,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                 this_weights=1./this_weights
                             
                             # Launche the second retracking process
-                            x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NMbrown_Sigma( xdata[startgate:stopgate+growingdue+1] , D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.hsat,np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag)
+                            x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NM_fit( xdata[startgate:stopgate+growingdue+1] , D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag)
                             
                                      
                             self.Wt_all_LESfive[startgate:stopgate+growingdue+1]=Wt_LESfive  #This is the fitted subwaveform

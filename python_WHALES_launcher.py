@@ -41,7 +41,7 @@ def get_options():
     parser.add_argument(
         '-m', '--mission', type=str,
         choices=['envisat', 'jason1', 'jason2', 'jason3', 'saral', 'cs2_lrm',
-                 'jason3f'],
+                 'jason3f', 'cfosat'],
         help='satellite mission'
     )
     parser.add_argument(
@@ -78,25 +78,48 @@ J3_filter_norm = J3_filter / np.mean(J3_filter[11:115])
 saral_filter = np.loadtxt('cal2/ALK_MeanFilter')
 saral_filter_norm = saral_filter / np.mean(saral_filter)
 
-# Mission-dependent files to be loaded
+# Mission-dependent parameters and files to be loaded
 if mission in ['envisat']:
     my_path_instr_corr_SWH = ''
     my_path_weights = 'weights/weights_n1.mat'
+    tau=3.125 #gate spacing in ns
+    Theta=1.35 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
+    SigmaP=0.53*tau #from Gomez Enri 2006. Otherwise use:%1.6562; %ns =0.53*3.125ns
 elif mission in ['jason1']:
     my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_MLE4_jason1SGDRc.mat'
     my_path_weights = 'weights/weights.mat'
+    tau=3.125
+    Theta=1.29 *np.pi/180
+    SigmaP=0.513*tau
 elif mission in ['jason2']:
     my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_WHALES_jason2SGDRd.mat'
     my_path_weights = 'weights/weights.mat'
+    tau=3.125
+    Theta=1.29 *np.pi/180
+    SigmaP=0.513*tau
 elif mission in ['jason3', 'jason3f']:
     my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat'
     my_path_weights = 'weights/weights.mat'
-elif mission in ['altika', 'saral']:
+    tau=3.125
+    Theta=1.29 *np.pi/180
+    SigmaP=0.513*tau
+elif mission.lower() in ['altika', 'saral', 'saral_igdr']:
     my_path_instr_corr_SWH = ''
     my_path_weights = 'weights/weights_alt.mat'
+    tau=3.125*320/480
+    Theta=0.605 *np.pi/180
+    SigmaP=0.513*tau
 elif mission in ['cs2_lrm']:
     my_path_instr_corr_SWH = ''
     my_path_weights = 'weights/weights_cs2_lrm.mat'
+    tau=3.125 #gate spacing in ns
+    Theta=1.1992 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
+    SigmaP=0.513*tau     
+
+#        if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm':           
+#            tau=3.03
+#            Theta=1.3 *np.pi/180
+#            SigmaP=0.513*tau    
 
 if my_path_instr_corr_SWH != '':
     my_path_instr_corr_SWH = os.path.join(
@@ -367,6 +390,7 @@ swh_WHALES_instr_corr = np.empty(np.shape(S_time)) * np.nan
 
 #
 # Now looping over waveforms for retracking
+# First loop is on 1 Hz data, second loop is on higher rate data 
 #
 for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
     for index_waveforms_col in np.arange(0, np.shape(S_time)[1], 1):
@@ -401,16 +425,9 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         ' hsat '
         input['hsat'] = S_height[index_waveforms_row, index_waveforms_col]
         ' mission '
-        if mission == 'jason3':
-            input['mission'] = 'jason3'
-        elif mission == 'jason2':
-            input['mission'] = 'jason2'
-        elif mission == 'envisat':
-            input['mission'] = 'envisat'
-        elif mission == 'saral':
-            input['mission'] = 'saral'
-        elif mission == 'cs2_lrm':
-            input['mission'] = 'cs2_lrm'
+        #if mission == 'jason3':
+        #    input['mission'] = 'jason3'
+        input['mission'] = mission
 
         ' off nadir angle in degree '
         input['xi'] = S_offnadir[index_waveforms_row, index_waveforms_col]
@@ -419,8 +436,16 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
             input['weights_flag'] = flag_edges
             input['weights'] = residual_std
 
+        input['tau'] = tau
+        input['Theta']  = Theta 
+        input['SigmaP']  = SigmaP
+#
+# Calls retracker 
+#
         retracker = WHALES_withRangeAndEpoch(input)
-
+#
+# Post-processing
+#
         # Quality flag of WHALES, based on the normalised fitting error on the leading edge
         if (retracker.Error) > 0.3 and (np.isnan(retracker.Error) == 0):
             Err_WHALES[index_waveforms_row, index_waveforms_col] = 1

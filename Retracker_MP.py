@@ -29,6 +29,7 @@ class Retracker_MP:
     scale = 0
     mission = None
     hsat = None
+    tau = None
     theta0 = None
     ref_range = None
     option = None
@@ -138,6 +139,14 @@ class Retracker_MP:
             self.weights_flag = config['weights_flag']
 
             # end MP addition
+        # FA added
+        ' CCI_rev'
+        if 'tau' in config:
+            self.tau = config['tau']
+        if 'Theta' in config:
+            self.Theta = config['Theta']
+        if 'SigmaP' in config:
+            self.SigmaP = config['SigmaP']
 
         ' debug flag '
         if 'debug' in config:
