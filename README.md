@@ -1,6 +1,15 @@
 # seastatecci_whales
 
-A project for the editing and testing of the WHALES retracker
+A project for the editing and testing of the WHALES retracker.
+
+The code is an implementation of the algorithm described in:
+
+Passaro M. et al., 2021: Algorithm Theoretical Basis Document (ATBD), Sea State Climate Change Initiative, European Space Agency, accessible from https://climate.esa.int/media/documents/Sea_State_cci_ATBD_v3.0-signed.pdf"
+
+## Credits: 
+Marcello Passaro (DGFI-TUM) is the author of the WHALES algorithm. The WHALES algorithm is an evolution of ALES (Passaro et al., 2014)
+
+Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mission subwaveform retracker for coastal and open ocean altimetry. Remote Sensing of Environment 145, 173-189, 10.1016/j.rse.2014.02.008, 2014
 
 ## Getting started
 
