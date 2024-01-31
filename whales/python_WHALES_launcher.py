@@ -162,6 +162,26 @@ if mission in ['jason1','jason2','jason3']:
     S_atmos_corr=np.transpose(np.tile(S_atmos_corr,(np.shape(S_time)[1],1)))
 
     S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz_ku'][:] )    
+
+elif mission in ['ers2']:
+
+    S_time=np.ma.getdata( S.variables['time_20hz'][:] )
+    S_height=np.ma.getdata( S.variables['alt_20hz'][:] )
+    S_swh=np.ma.getdata( S.variables['swh_20hz'][:] )
+    S_tracker=np.ma.getdata( S.variables['tracker_range_20hz'][:] )
+    S_range=np.ma.getdata( S.variables['range_20hz'][:] )
+    S_waveform=np.ma.getdata( S.variables['ku_wf'][:] )
+    S_lat=np.ma.getdata( S.variables['lat_20hz'][:] )
+    S_lon=np.ma.getdata( S.variables['lon_20hz'][:] )
+    S_landmask=np.ma.getdata( S.variables['surface_type'][:] )
+    S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_20hz'][:] )
+    S_atmos_corr=np.ma.getdata( S.variables['atmos_corr_sig0'][:] )
+    #This field is at 1-Hz, so it has to be reshaped
+    S_atmos_corr=np.transpose(np.tile(S_atmos_corr,(np.shape(S_time)[1],1)))
+
+    S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz'][:] )    
+
+
 elif mission in ['envisat']:
     
     S_time=np.ma.getdata( S.variables['time_20'][:] ) 

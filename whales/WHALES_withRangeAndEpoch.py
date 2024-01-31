@@ -343,7 +343,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                 #after the middle of the leading edge
                 ALEScoeff1=3.36 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
-                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory                 
+                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory   
+                                                        #              
 
 
         elif mission.lower() == 'ers2_r': 
@@ -351,8 +352,16 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 sys.exit(0)
                 
         elif mission.lower() == 'ers2_r_2cm':
-                print "Mission not yet supported"
-                sys.exit(0)
+                index_originalbins=np.arange(0,63,1) #Gate index of the waveform samples
+                total_gate_number=64                
+                noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
+                tau=3.03 #gate width in nanoseconds
+                startgate=4 #First gate to be considered in the retracking window
+                ALEScoeff0=8.90 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                                #after the middle of the leading edge
+                ALEScoeff1=2.03 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
+                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory  
 
         else:
                 print "unknown mission"
