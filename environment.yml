@@ -16,4 +16,4 @@ dependencies:
     - netcdf4
     - h5py
     - pip:
-      - install tables
+      - tables
