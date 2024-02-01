@@ -25,7 +25,7 @@ from scipy.io import loadmat
 
 def import_weights_mat(my_path_weights):
     mat_weights = loadmat(my_path_weights)
-    residual_std = mat_weights['residual_tot'].T
-    flag_edges = mat_weights['flag_edges'].T
+    residual_std = mat_weights['residual_tot']
+    flag_edges = mat_weights['flag_edges']
 
     return residual_std, flag_edges
