@@ -96,7 +96,7 @@ class Retracker_MP:
             self.uralt = config['uralt']
         if config.has_key('threshold'):
             if float(config['threshold']) < 0.0 or float(config['threshold']) > 100.0:
-                print "Error: Threshold must be between 0 and 100%"
+                print("Error: Threshold must be between 0 and 100%")
                 sys.exit(0)
             self.threshold = float(config['threshold']) / 100.0
         if config.has_key('scale') and config['scale'] == 1:
@@ -143,10 +143,10 @@ class Retracker_MP:
             self.debug = int(config['debug'])            
             
         if self.__class__.__name__ == "Threshold" and self.threshold == None:
-            print "Error: Threshold retracker needs argument 'threshold' [0, ..., 100]"
+            print("Error: Threshold retracker needs argument 'threshold' [0, ..., 100]")
             sys.exit(0)
         if self.__class__.__name__ == "ImprovedThreshold" and self.threshold == None:
-            print "Error: ImprovedThreshold retracker needs argument 'threshold' [0, ..., 100]"
+            print("Error: ImprovedThreshold retracker needs argument 'threshold' [0, ..., 100]")
             sys.exit(0)
             
     def plot(self):
@@ -208,5 +208,5 @@ class Retracker_MP:
         return info
     
     def get_model(self):
-        print "No model available for this retracker"
+        print("No model available for this retracker")
     

@@ -172,45 +172,46 @@ if mission in ['jason1','jason2','jason3']:
 elif mission in ['ers2']:
 
     S_time=np.ma.getdata( S.variables['time_20hz'][:] )
-    S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
+    #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
     
     #Time at 1-Hz for interpolation of fields available only at 1-Hz
     S_time_1hz=np.ma.getdata( S.variables['time'][:] )
-    S_time_1hz=np.reshape(S_time_1hz,(np.shape(S_time_1hz)[0],1) )
+    #S_time_1hz=np.reshape(S_time_1hz,(np.shape(S_time_1hz)[0],1) )
     
     S_height=np.ma.getdata( S.variables['alt_20hz'][:] )
-    S_height=np.reshape(S_height,(np.shape(S_time)[0],1) )
+    #S_height=np.reshape(S_height,(np.shape(S_time)[0],1) )
 
     S_swh=np.ma.getdata( S.variables['swh_20hz'][:] )
-    S_swh=np.reshape(S_swh,(np.shape(S_time)[0],1) )
+    #S_swh=np.reshape(S_swh,(np.shape(S_time)[0],1) )
 
     S_tracker=np.ma.getdata( S.variables['tracker_range_20hz'][:] )
-    S_tracker=np.reshape(S_tracker,(np.shape(S_time)[0],1) )
+    #S_tracker=np.reshape(S_tracker,(np.shape(S_time)[0],1) )
 
-    S_range=np.ma.getdata( S.variables['range_20hz'][:] )
-    S_range=np.reshape(S_range,(np.shape(S_time)[0],1) )
+    S_range=np.ma.getdata( S.variables['ocean_range_20hz'][:] )
+    #S_range=np.reshape(S_range,(np.shape(S_time)[0],1) )
 
     S_waveform=np.ma.getdata( S.variables['ku_wf'][:] )
 
     S_lat=np.ma.getdata( S.variables['lat_20hz'][:] )
-    S_lat=np.reshape(S_lat,(np.shape(S_time)[0],1) )
+    #S_lat=np.reshape(S_lat,(np.shape(S_time)[0],1) )
 
     S_lon=np.ma.getdata( S.variables['lon_20hz'][:] )
-    S_lon=np.reshape(S_lon,(np.shape(S_time)[0],1) )
+    #S_lon=np.reshape(S_lon,(np.shape(S_time)[0],1) )
 
     #S_landmask=np.ma.getdata( S.variables['surface_type'][:] )
     
     S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_20hz'][:] )
-    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+    #S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
 
     S_atmos_corr=np.ma.getdata( S.variables['atmos_corr_sig0'][:] )
-    S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time_1hz)[0],1) )
+    #S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time_1hz)[0],1) )
     #This field is at 1-Hz, so it has to be reshaped
-    S_atmos_corr=np.interp(S_time[:,0],S_time_1hz[:,0],S_atmos_corr[:,0])
-    S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time)[0],1) )
+    S_atmos_corr=np.transpose(np.tile(S_atmos_corr,(np.shape(S_time)[1],1)))
+    #S_atmos_corr=np.interp(S_time[:,0],S_time_1hz[:,0],S_atmos_corr[:,0])
+    #S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time)[0],1) )
 
     S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz'][:] )
-    S_scaling_factor=np.reshape(S_scaling_factor,(np.shape(S_time)[0],1) )    
+    #S_scaling_factor=np.reshape(S_scaling_factor,(np.shape(S_time)[0],1) )    
 
 
 elif mission in ['envisat']:
