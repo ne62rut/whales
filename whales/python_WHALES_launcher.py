@@ -99,7 +99,7 @@ elif mission in ['cs2_lrm'] :
     my_path_instr_corr_SWH='' 
     my_path_weights='weights/weights_cs2_lrm.mat'
 elif mission in ['ers2'] :
-    my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason2SGDRd.mat' 
+    my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat' 
     my_path_weights='weights/weights_ers2.mat'    
 
         

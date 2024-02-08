@@ -48,34 +48,29 @@ def compute_instr_corr_SWH_WHALES(SWH_ALES,my_path_instr_corr_SWH,mission,f='emp
 
          
     
-    if isinstance(f, basestring)==False:    
-
+    if isinstance(f, str) == False:    
         mat = matlab.loadmat(my_path_instr_corr_SWH)
-        corrvalues=np.squeeze(mat['SWHinstrcorr_J3WHALESsgdrD_corrvalues'])
-        SWHvalues=np.squeeze(mat['SWHinstrcorr_J3WHALESsgdrD_swhvalues'])           
-        #print SWH_ALES
-        if SWH_ALES<np.min(SWHvalues) :         
-            instr_corr_SWH=corrvalues[0]
-        elif SWH_ALES>np.max(SWHvalues) :           
-            instr_corr_SWH=corrvalues[-1]            
+        corrvalues = mat['SWHinstrcorr_J3WHALESsgdrD_corrvalues'].squeeze()
+        SWHvalues = mat['SWHinstrcorr_J3WHALESsgdrD_swhvalues'].squeeze()           
+        
+        if SWH_ALES < np.min(SWHvalues):         
+            instr_corr_SWH = corrvalues[0]
+        elif SWH_ALES > np.max(SWHvalues):           
+            instr_corr_SWH = corrvalues[-1]            
         else:
-            instr_corr_SWH=f(SWH_ALES)   
+            instr_corr_SWH = f(SWH_ALES)   
                 
-    else :
-        # import look-up table for Jason-2  
-        #with open(my_path_instr_corr_SWH) as instr_corr_SWH_model:
-            
+    else:
         mat = matlab.loadmat(my_path_instr_corr_SWH)
-        corrvalues=np.squeeze(mat['SWHinstrcorr_J3WHALESsgdrD_corrvalues'])
-        SWHvalues=np.squeeze(mat['SWHinstrcorr_J3WHALESsgdrD_swhvalues'])
-        #f=interpolate.interp2d( SWH_vector_grid,Wind_vector_grid,SSB_vector_grid,kind='cubic'  )
-        #print SWH_ALES
-        if SWH_ALES<np.min(SWHvalues):
-            instr_corr_SWH=0#corrvalues[0]
-        elif SWH_ALES>np.max(SWHvalues) :          
-            instr_corr_SWH=corrvalues[-1]                
+        corrvalues = mat['SWHinstrcorr_J3WHALESsgdrD_corrvalues'].squeeze()
+        SWHvalues = mat['SWHinstrcorr_J3WHALESsgdrD_swhvalues'].squeeze()
+        
+        if SWH_ALES < np.min(SWHvalues):
+            instr_corr_SWH = 0
+        elif SWH_ALES > np.max(SWHvalues):          
+            instr_corr_SWH = corrvalues[-1]                
         else:
-            f=interpolate.interp1d( SWHvalues,corrvalues,kind='cubic'  )
-            instr_corr_SWH=f(SWH_ALES)  
+            f = interpolate.interp1d(SWHvalues, corrvalues, kind='cubic')
+            instr_corr_SWH = f(SWH_ALES)  
     
-    return instr_corr_SWH, f    
+    return instr_corr_SWH, f  
