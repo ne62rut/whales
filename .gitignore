@@ -5,4 +5,5 @@ SRL*
 CS*
 E2*
 try*
-/test_files/
+whales/test_files/*
+test_files/*

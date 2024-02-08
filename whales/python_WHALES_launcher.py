@@ -42,7 +42,7 @@ saving_directory= ''
 
 
 ##
-saving_name='try'
+saving_name='try_ers2'
 
 # ERS2 test file
 filename='test_files/E2_REAP_ERS_ALT_2S_20000718T222234_20000718T235223_RP01.NC'
@@ -62,7 +62,7 @@ mission='ers2'
 
 cal2='on'
 
-add_instr_corr_SWH = 'no'
+add_instr_corr_SWH = 'yes'
 import_weights= 'yes'
 
 
@@ -99,7 +99,7 @@ elif mission in ['cs2_lrm'] :
     my_path_instr_corr_SWH='' 
     my_path_weights='weights/weights_cs2_lrm.mat'
 elif mission in ['ers2'] :
-    my_path_instr_corr_SWH='' 
+    my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason2SGDRd.mat' 
     my_path_weights='weights/weights_ers2.mat'    
 
         
@@ -190,7 +190,7 @@ elif mission in ['ers2']:
     S_range=np.ma.getdata( S.variables['ocean_range_20hz'][:] )
     #S_range=np.reshape(S_range,(np.shape(S_time)[0],1) )
 
-    S_waveform=np.ma.getdata( S.variables['ku_wf'][:] )
+    S_waveform=np.ma.getdata( S.variables['ku_wf'][:] ).astype(np.float64)
 
     S_lat=np.ma.getdata( S.variables['lat_20hz'][:] )
     #S_lat=np.reshape(S_lat,(np.shape(S_time)[0],1) )
@@ -202,6 +202,7 @@ elif mission in ['ers2']:
     
     S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_20hz'][:] )
     #S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+    S_offnadir=np.zeros_like(S_offnadir) # THE OFF NADIR FIELD IN ERS2 IS EMPTY!!!!!
 
     S_atmos_corr=np.ma.getdata( S.variables['atmos_corr_sig0'][:] )
     #S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time_1hz)[0],1) )

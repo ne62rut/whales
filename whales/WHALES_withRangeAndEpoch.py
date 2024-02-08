@@ -336,16 +336,28 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 sys.exit(0)
                 
         elif mission.lower() == 'ers2_r_2cm':
-                index_originalbins=np.arange(0,63,1) #Gate index of the waveform samples
-                total_gate_number=64                
-                noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
+                index_originalbins=np.arange(0,63,1) #207 because the gate 126 must be included
+                total_gate_number=64
+                noisegates=np.arange(10,13); #gates used to estimate Thermal Noise (see mail from David Brockley)
                 tau=3.03 #gate width in nanoseconds
-                startgate=4 #First gate to be considered in the retracking window
+                startgate=8 #First gate to be considered in the retracking window, we choose this because first gates are often corrupted
                 ALEScoeff0=8.90 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
                 ALEScoeff1=2.03 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory  
+                # # AKIMA INTERPOLATION                
+                # waveform_resampled=np.empty(np.size(waveform))*np.nan
+                # y=waveform # 11 May 2015: forced conversion to double                
+                # x=np.arange(1*tau,64*tau+0.01,tau)
+                # x[-1]=round(x[-1],5)
+                # xi=np.arange(1*tau,64*tau+0.01,tau/2)
+                # xi[-1]=round(xi[-1],5)
+                # yi=self.akima_interpolate(x,y,xi)
+                # waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
+                # # END AKIMA INTERPOLATION
+                # waveform = waveform_resampled    
+
 
         else:
                 print("unknown mission")
