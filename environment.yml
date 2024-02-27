@@ -1,7 +1,8 @@
 name: seastatecci_whales
 channels:
+  - conda-forge
 dependencies:
-    - python=2.7
+    - python=3.10
     - pip
     #- os
     - numpy
@@ -15,5 +16,5 @@ dependencies:
     #- datetime
     - netcdf4
     - h5py
-    - pip:
-      - install tables
+    #- pip:
+    #  - install tables
