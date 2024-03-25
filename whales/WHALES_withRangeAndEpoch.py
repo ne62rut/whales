@@ -11,6 +11,8 @@ WHALES Retracker corresponding to the WHALES version of the 4.12.2018, but with 
 
 
 #from OpenADB.Retracking import Retracker
+from __future__ import division
+from __future__ import print_function
 from Retracker_MP import *
 import scipy
 from scipy import stats
