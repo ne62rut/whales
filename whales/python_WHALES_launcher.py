@@ -42,10 +42,13 @@ saving_directory= ''
 
 
 ##
-saving_name='try_ers2'
+saving_name='try_ers1'
+
+# ERS1 test file
+filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
 
 # ERS2 test file
-filename='test_files/E2_REAP_ERS_ALT_2S_20000718T222234_20000718T235223_RP01.NC'
+#filename='test_files/E2_REAP_ERS_ALT_2S_20000718T222234_20000718T235223_RP01.NC'
 
 # ENVISAT test file
 #filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
@@ -56,8 +59,8 @@ filename='test_files/E2_REAP_ERS_ALT_2S_20000718T222234_20000718T235223_RP01.NC'
 #CS-2 test file
 #filename='test_files/CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
 
-# Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm, ers2
-mission='ers2'
+# Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm, ers2, ers1
+mission='ers1'
 
 
 cal2='on'
@@ -98,7 +101,7 @@ elif mission in ['altika','saral'] :
 elif mission in ['cs2_lrm'] :
     my_path_instr_corr_SWH='' 
     my_path_weights='weights/weights_cs2_lrm.mat'
-elif mission in ['ers2'] :
+elif mission in ['ers2','ers1'] :
     my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat' 
     my_path_weights='weights/weights_ers2.mat'    
 
@@ -169,7 +172,7 @@ if mission in ['jason1','jason2','jason3']:
 
     S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz_ku'][:] )    
 
-elif mission in ['ers2']:
+elif mission in ['ers2','ers1']:
 
     S_time=np.ma.getdata( S.variables['time_20hz'][:] )
     #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
@@ -420,7 +423,10 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
                 input['waveform'] = S_waveform[index_waveforms_row,:]
             elif mission=='ers2':
                 ' waveform '
-                input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]                                 
+                input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]
+            elif mission=='ers1':
+                ' waveform '
+                input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]                                                 
         else:
             input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]
             
@@ -443,6 +449,8 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
             input['mission'] = 'cs2_lrm'            
         elif mission=='ers2':
             input['mission'] = 'ers2_r_2cm'
+        elif mission=='ers1':
+            input['mission'] = 'ers2_r_2cm'            
 
         ' off nadir angle in degree ' 
         input['xi'] =  S_offnadir[index_waveforms_row,index_waveforms_col]
