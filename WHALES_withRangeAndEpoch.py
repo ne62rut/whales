@@ -24,6 +24,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 #from akima_interpolate import interpolate as akima
 ' WHALES Retracker '
+import time
 
 
 
@@ -311,6 +312,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.uncssh = np.nan #Uncorrected Sea Surface Height: not computed 
         Epoch_LESfive=np.nan                
                 
+
                 
                 
             # STEP 1: NOISE ESTIMATION                 
@@ -346,11 +348,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         edgeend=1
         
         # --- Changed by Marine 
-        # wv=D[index_originalbins] # old version of 'wv'
-        wv0=D[index_originalbins]
-        kernel_size = 3
-        kernel = np.ones(kernel_size) / kernel_size
-        wv = np.convolve(wv0, kernel, mode='same')
+        
+        if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
+            wv0=D[index_originalbins]
+            kernel_size = 3
+            kernel = np.ones(kernel_size) / kernel_size
+            wv = np.convolve(wv0, kernel, mode='same')
+        else:
+            wv=D[index_originalbins] # old version of 'wv'
         
         Dwv=np.diff(wv)
         i = 4 #Gate where the search starts
@@ -382,6 +387,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
         self.gate2=gate2
         self.gate1=gate1
+
+        start_a = time.time()
+        
 
         if np.isnan(D[gate2])==0:
 
@@ -425,14 +433,21 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
                 if exitflag_yang==0: 
-                #if convergence is not reached, we might need more gates (growingdue+2) 
-                    growingdue=growingdue+2
+#                #if convergence is not reached, we might need more gates (growingdue+2) 
+                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
+                        if growingdue < 6 : #In the special case of Saral, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
+                                            #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time
+                            growingdue=growingdue+2
+                        else:
+                            break
+                    else:
+                        growingdue=growingdue+2
                 else: #else then we can stop the while cycle
                         break
                     
 
             self.D=D  #D is the normalised original waveform
-    
+  
                     
                       
             del(growingdue)    
@@ -452,7 +467,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                     Sigma_yang=np.nan
                              
                              
-                             
+            end_a = time.time()
+            #print(f"Time elapsed for section A: {end_a - start_a:.4f} seconds")                 
                              
                              
                              
@@ -557,6 +573,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                 
                                  
                             #END OF THE SECOND WHILE CYCLE
+
+            end_b = time.time()
+            #print(f"Time elapsed for section B: {end_b - end_a:.4f} seconds") 
 
             stopgate=stopgate-1  #This is not used anymore
                 
