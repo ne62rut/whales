@@ -6,11 +6,23 @@ Created on 11 February 2019
 
 WHALES Retracker corresponding to the WHALES version of the 4.12.2018, but with Epoch and Range in Output
 
+The WHALES algorithm is described in 
+Passaro, M., & Algorithm Development Team. (2021). Algorithm theoretical basis document (atbd), 
+sea state climate change initiative (Tech. Rep.). European Space Agency. 
+Retrieved from https://climate.esa.int/media/documents/Sea_State_cci_ATBD_v3.0-signed.pdf
+
+Modification history:
+	2023-01-10: corrections for SARAL by Marine De Carlo 
+        2024-06-30: adaptation for wavesALTI package by F. Ardhuin 
+        2024-07-19: added possibility to use 1/waveform for the weights
+        2024-12-19: export of gate1 and gate2 indices, clean-up
+
+
 """
 
 
 from Retracker_MP    import *
-from waveform_models import myfun_brown_LS
+from waveform_models import waveform_brown_LS,waveform_brown_ML,wf_brown_eval
 import scipy
 from scipy import stats
 import cmath #handling of complex square root
@@ -24,6 +36,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 #from akima_interpolate import interpolate as akima
 ' WHALES Retracker '
+import time
 
 
 
@@ -34,7 +47,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.retrack_MP()
 
 
-    def NM_fit(self,xdata,ydata,Zeta,tau,Theta,SigmaP,altitude,initial_conditions,mission,weights,weightflag) :
+    def NM_fit(self,xdata,ydata,Zeta,tau,Theta,SigmaP,altitude,initial_conditions,mission,weights,weightflag,modelcost) :
         #Nelder-Mead fit of a waveform 
     
         #IT NEEDS:
@@ -49,7 +62,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             #4) Err: Fitting Error on the portion of waveform given to the function
             #5) SWH: Significant Wave Height
         
-    
+        # WARNING: ZETA is xi converted to radians 
+        
         incognita=initial_conditions
         
         c=3.0*(10**8) #Light speed
@@ -64,7 +78,10 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
     
         a=a/1000000000 #/ns
         c_xi=c_xi/1000000000 #1/ns
-        xopt = minimize(myfun_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
+        if modelcost == 'brown_LS':
+           xopt = minimize(waveform_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
+        elif modelcost == 'brown_ML':
+           xopt = minimize(waveform_brown_ML, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
 
         
         if xopt.success == True:
@@ -77,7 +94,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
         SWH_squared=( - SigmaP**2 + x[1]**2 )
         if SWH_squared>=0 :    
-            SWH=cmath.sqrt( np.abs(- SigmaP**2 + x[1]**2)  ).real * (2*0.3)
+            SWH=cmath.sqrt( np.abs(- SigmaP**2 + x[1]**2)  ).real * (2*0.3)   # factor 2*0.3 converts sigma_time in nanosecond to 4*sigma in meters
         else:
             SWH=- cmath.sqrt( np.abs(- SigmaP**2 + x[1]**2) ).real * (2*0.3)
         SigmaS=SWH/(2*0.3) 
@@ -112,7 +129,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
             tau=3.125*320/480 #gate spacing in ns
             nominal_tracking_gate=51            
-        if mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3': 
+        if mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3' or mission.lower() == 'swot': 
             tau=3.125
             nominal_tracking_gate=31
         if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm': 
@@ -252,7 +269,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         elif mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
                 index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
                 total_gate_number=128                
-                noisegates=10+np.arange(4,10); #gates used to estimate Thermal Noise # changed by Marine
+                noisegates=10+np.arange(4,10); #gates used to estimate Thermal Noise # changed by Marine De Carlo
                 tau=3.125*320/480 #gate width in nanoseconds
                 startgate=4 #First gate to be considered in the retracking window
                 ALEScoeff0=2.94 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
@@ -262,7 +279,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory              
 
    
-        elif mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3': 
+        elif mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3' or mission.lower() == 'swot': 
                 index_originalbins=np.arange(0,103,1) #Gate index of the waveform samples
                 total_gate_number=104                
                 noisegates=np.arange(0,6); #gates used to estimate Thermal Noise
@@ -314,8 +331,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
             # STEP 1: NOISE ESTIMATION                 
-        estimated_noise = np.nanmean(waveform[noisegates])
+        estimated_noise = np.nanmedian(waveform[noisegates])
         C = waveform - estimated_noise;
+        #inds=np.where(C[20:110] < 0)[0]
+        #C=np.where(C < 0,0,C)
+        #inds2=np.where(C[20:110] < 0)[0]
+        #if len(inds2) >0:
+        #    print('Problem:',len(inds2),estimated_noise,np.nanmax(waveform),np.nanmin(waveform[14:110]),inds)	
+
             
             # STEP 2: WAVEFORM NORMALISATION
         igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here
@@ -346,14 +369,17 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         edgeend=1
         
         # --- Changed by Marine 
-        # wv=D[index_originalbins] # old version of 'wv'
-        wv0=D[index_originalbins]
-        kernel_size = 3
-        kernel = np.ones(kernel_size) / kernel_size
-        wv = np.convolve(wv0, kernel, mode='same')
+        
+        if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
+            wv0=D[index_originalbins]
+            kernel_size = 3
+            kernel = np.ones(kernel_size) / kernel_size
+            wv = np.convolve(wv0, kernel, mode='same')
+        else:
+            wv=D[index_originalbins] # old version of 'wv'
         
         Dwv=np.diff(wv)
-        i = 4 #Gate where the search starts
+        i = 4 #Gate where the search starts (avoids wrap-up of ERS for example)
         
         while i<=np.size(wv)-5 :
             #In order to be the leading edge, it doesn't have to go below
@@ -383,6 +409,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.gate2=gate2
         self.gate1=gate1
 
+        start_a = time.time()
+        
+
         if np.isnan(D[gate2])==0:
 
             # STEP 5: RETRACKING WITH THE ALES RETRACKER
@@ -410,7 +439,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 x1_yang, Wt_yang, exitflag_yang, Err, SWH =\
                         self.NM_fit( xdata[startgate:gate2+growingdue+1] , D[startgate:gate2+growingdue+1],\
                         self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,\
-                        np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag)
+                        np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag,modelcost='brown_LS')
 
 
                 if gate2>gate1+1 and gate1>0 and np.size(Wt_yang)>1 and gate1>startgate and gate2>startgate+1 :
@@ -425,14 +454,21 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
                 if exitflag_yang==0: 
-                #if convergence is not reached, we might need more gates (growingdue+2) 
-                    growingdue=growingdue+2
+#                #if convergence is not reached, we might need more gates (growingdue+2) 
+                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
+                        if growingdue < 6 : #In the special case of Saral, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
+                                            #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time
+                            growingdue=growingdue+2
+                        else:
+                            break
+                    else:
+                        growingdue=growingdue+2
                 else: #else then we can stop the while cycle
                         break
                     
 
             self.D=D  #D is the normalised original waveform
-    
+  
                     
                       
             del(growingdue)    
@@ -452,7 +488,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                     Sigma_yang=np.nan
                              
                              
-                             
+            end_a = time.time()
+            #print(f"Time elapsed for section A: {end_a - start_a:.4f} seconds")                 
                              
                              
                              
@@ -512,26 +549,74 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                             #In WHALES, for each value of SWH there is a corresponding set of weights, which are defined only from the start to the end of the 
                             #leading edge of the synthetic waveforms generated in the Montecarlo simulation
                             
-                            #In the following lines,the closest value of SWH is searched in the table, considering the exit of the first pass
                             weigths_SWH_vector=np.arange(0,10.5,0.5)
                             select_weights=np.argmin(  np.abs(np.abs(SWH_yang)-weigths_SWH_vector)  )
-                                #Select the right line of weights
-                            weights_select=self.weights[select_weights,:]
-                            index_nanweights=np.where(np.isnan(weights_select))[0]
-                            weights_select[index_nanweights]=1 #Transform the NaNs of the weight vector in ones
+
                             index_startweight=np.where(self.weights_flag[select_weights,:]==1)[0] #identify the start and the end of the leading edge in the weight vector
                             index_endweight=np.where(self.weights_flag[select_weights,:]==2)[0]
                             index_startweight=index_startweight[0] #convert array to index
                             index_endweight=index_endweight[0] #convert array to index
+
+
+
+                            if self.weights_type == 0:
+                                 this_weights=np.zeros(len(waveform))+1.0
+                            elif self.weights_type == 1:
+                                 #In the following lines,the closest value of SWH is searched in the table, considering the exit of the first pass
+                                 #Select the right line of weights
+                                 weights_select=self.weights[select_weights,:]
+                                 index_nanweights=np.where(np.isnan(weights_select))[0]
+                                 weights_select[index_nanweights]=self.weight_outsub #Transform the NaNs of the weight vector in ones
+                                 gatemax=np.min([total_gate_number-1,gate1+index_endweight-index_startweight])
+                                 this_weights[gate1:gatemax]=weights_select[index_startweight:index_startweight+gatemax-gate1]
+
+                            elif self.weights_type == 2:
+                                 x1_brown=x1_yang
+                                 x1_brown[2]=1   # need to check the impact of this ... 
+                                 this_weights=np.zeros(len(waveform))+self.weight_outsub
+                                 Gamma=0.5 * (1/math.log(2))*np.sin(self.Theta)*np.sin(self.Theta) # antenna beamwidth parameter
+                                 c=3.0*(10**8) #Light speed
+                                 H=self.hsat
+                                 Ri=6378.1363*(10**3) #Earth radius
+
+                                 Gamma=0.5 * (1/math.log(2))*np.sin(self.Theta)*np.sin(self.Theta) # antenna beamwidth parameter
+                                 Zeta=self.xi*math.pi/180
+                                 b_xi = np.cos (2*Zeta) - ((np.sin(2*Zeta))**2)/Gamma
+                                 a=( (4/Gamma)*(c/H) * 1/(1+H/Ri))
+                                 c_xi=b_xi* ( (4/Gamma)*(c/H) * 1/(1+H/Ri))
+                                 c_xi=c_xi/1000000000 #1/ns
+                                 wbrown=0.001+wf_brown_eval(xdata,x1_brown,0.,Gamma,Zeta,c_xi,[1])/self.sqrtn # tau,PTR)
+                                 this_weights[gate1:gate2]=wbrown[gate1:gate2]
+
+                            elif self.weights_type == 3:
+                                 x1_brown=x1_yang
+                                 x1_brown[2]=1   # need to check the impact of this ... 
+                                 this_weights=np.zeros(len(waveform))+self.weight_outsub
+                                 Gamma=0.5 * (1/math.log(2))*np.sin(self.Theta)*np.sin(self.Theta) # antenna beamwidth parameter
+                                 c=3.0*(10**8) #Light speed
+                                 H=self.hsat
+                                 Ri=6378.1363*(10**3) #Earth radius
+
+                                 Gamma=0.5 * (1/math.log(2))*np.sin(self.Theta)*np.sin(self.Theta) # antenna beamwidth parameter
+                                 Zeta=self.xi*math.pi/180
+                                 b_xi = np.cos (2*Zeta) - ((np.sin(2*Zeta))**2)/Gamma
+                                 a=( (4/Gamma)*(c/H) * 1/(1+H/Ri))
+                                 c_xi=b_xi* ( (4/Gamma)*(c/H) * 1/(1+H/Ri))
+                                 c_xi=c_xi/1000000000 #1/ns
+                                 wbrown=0.001+(wf_brown_eval(xdata,x1_brown,0.,Gamma,Zeta,c_xi,[1])/self.sqrtn)**2 # tau,PTR)
+                                 this_weights[gate1:gate2]=wbrown[gate1:gate2]
                             
-                                #Now prepare a weight vector considering the start of the leading edge in this waveform
-                            this_weights=np.ones(np.shape(xdata))
-                            if gate1+index_endweight-index_startweight<total_gate_number :
-                                this_weights[gate1:gate1+(index_endweight-index_startweight)]=weights_select[index_startweight:index_endweight]
-                                this_weights=1./this_weights
+                            this_weights=1./this_weights
                             
-                            # Launche the second retracking process
-                            x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NM_fit( xdata[startgate:stopgate+growingdue+1] , D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag)
+                            # Launch the second retracking process
+                            if self.costfunction == 'LS':
+                                x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NM_fit( xdata[startgate:stopgate+growingdue+1] , \
+                                D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,np.array([x_initial, sigma_initial, \
+                                ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag,modelcost='brown_LS')
+                            else:
+                                x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NM_fit( xdata[startgate:stopgate+growingdue+1] , \
+                                D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,np.array([x_initial, sigma_initial, \
+                                ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag,modelcost='brown_ML')
                             
                                      
                             self.Wt_all_LESfive[startgate:stopgate+growingdue+1]=Wt_LESfive  #This is the fitted subwaveform
@@ -558,11 +643,10 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  
                             #END OF THE SECOND WHILE CYCLE
 
-            stopgate=stopgate-1  #This is not used anymore
-                
-                
-                
-                
+            end_b = time.time()
+            #print(f"Time elapsed for section B: {end_b - end_a:.4f} seconds") 
+
+                 
                 
             if np.isnan(x1_LESfive[2])==0 :
                 Epoch_LESfive,Tau_LESfive,Sigma_LESfive,Au_LESfive=self.Conversion_NMbrown(x1_LESfive,mission)
@@ -595,9 +679,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             #self.leading_edge = np.nan
             self.Error = Err_LESfive  #Fitting Error on the leading edge
             
-            self.range = self.uralt  + self.Epoch   #Range in m             
-               
-            #self.uncssh = self.hsat - self.range  #Can be removed
+            self.range = self.uralt  + self.Epoch   #Range in m  
+            self.D=D
+            self.this_weights=this_weights
         else:
             self.range = np.nan
             self.uncssh = np.nan            
@@ -608,6 +692,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             self.Norm_Amplitude=np.nan 
             #self.leading_edge = np.nan
             self.Error = np.nan 
+            self.D=D
+            self.this_weights=D*0+np.nan
 
 
         self.model = self.Wt_all_LESfive.copy()*normalize_factor  #Fitted Waveform

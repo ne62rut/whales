@@ -34,6 +34,10 @@ class Retracker_MP:
     ref_range = None
     option = None
     factor = None
+    weights_type = None
+    costfunction = None
+    weight_outsub = 1.
+    sqrtn = np.sqrt(90.)
     # weights = None #Weights used for the estimation of SWH
     # weights_flag = None #Flag that identifies start and end of the leading edge in the weight distribution
 
@@ -147,6 +151,10 @@ class Retracker_MP:
             self.Theta = config['Theta']
         if 'SigmaP' in config:
             self.SigmaP = config['SigmaP']
+        if 'weights_type' in config:
+            self.weights_type = config['weights_type']
+        if 'costfunction' in config:
+            self.costfunction = config['costfunction']
 
         ' debug flag '
         if 'debug' in config:

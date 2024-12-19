@@ -14,7 +14,35 @@ import numpy as np
 import scipy
 from scipy import special
 
-def  myfun_brown_LS(incognita,data)  :
+######################  Defines waveform theoretical models: brown from WHALES code, includes PTR convolution
+def  wf_brown_eval(xdata,incognita,noise,Gamma,Zeta,c_xi,PTR)  :
+    '''
+    Define a waveform as in the WHALES code.
+    Based on a Brown model.
+    inputs :
+            - xdata : range gates
+            - incognita : (3,) vector with [0] = epoch, [1] = Hs, [2] = amplitude
+            - noise : thermal noise
+            - Gamma : coeff with antenna bandwidth (gamma in Tourain et al. 2020)
+            - Zeta : off nadir pointing angle (= mispointing)
+            - c_xi : 4 c /(G * h) (with G = Gamma in Tourain et al. 2020)
+            - PTR : optionnal PTR
+    output : - waveform
+    '''
+
+    ff0=noise+( incognita[2]/2*np.exp((-4/Gamma)*(np.sin(Zeta))**2) \
+    * np.exp (-  c_xi*( (xdata-incognita[0])-c_xi*incognita[1]**2/2) ) \
+    *   (  1+scipy.special.erf( ((xdata-incognita[0])-c_xi*incognita[1]**2)/((np.sqrt(2)*incognita[1]))  ) ) \
+    )
+    if PTR[0] < 1:
+       fff =fftconvolve(ff0,PTR,mode='same')
+    else:
+       fff=ff0
+
+    return fff
+    
+######################  Cost functions for retracking ... should use function above. 
+def  waveform_brown_LS(incognita,data)  :
      """
      returns the least-square distance between the waveform data[0] and the theoretical 
      Brown-Hayne functional form, The unknown parameters in this version (17 Dec 2013) are Epoch, Sigma and Amplitude, where 
@@ -42,7 +70,7 @@ def  myfun_brown_LS(incognita,data)  :
      return cy
 
 
-def  myfun_brown_ML(incognita,data)  :
+def  waveform_brown_ML(incognita,data)  :
      """
      returns the ML distance between the waveform data[0] and the theoretical 
      Brown-Hayne functional form, The unknown parameters in this version (17 Dec 2013) are Epoch, Sigma and Amplitude, where 
@@ -64,8 +92,8 @@ def  myfun_brown_ML(incognita,data)  :
      * np.exp (-  c_xi*( (xdata-incognita[0])-c_xi*incognita[1]**2/2) ) \
      *   (  1+scipy.special.erf( ((xdata-incognita[0])-c_xi*incognita[1]**2)/((np.sqrt(2)*incognita[1]))  ) ) \
      )
-     ratio = ydata/fff 
-     cy= ( ratio - log(ratio)).sum()
+     ratio = np.divide(ydata+1.e-5,fff+1.e-5) 
+     cy= ( ratio - np.log(ratio)-1.).sum()
      
      return cy
 
