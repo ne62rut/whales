@@ -338,27 +338,28 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 sys.exit(0)
                 
         elif mission.lower() == 'ers2_r_2cm':
-                index_originalbins=np.arange(0,63,1) #207 because the gate 126 must be included
-                total_gate_number=64
-                noisegates=np.arange(10,13); #gates used to estimate Thermal Noise (see mail from David Brockley)
+                interpolation_factor=2
+                index_originalbins=np.arange(0,63*interpolation_factor,interpolation_factor)
+                total_gate_number=64*interpolation_factor
+                noisegates=np.arange(10*interpolation_factor,13*interpolation_factor); #gates used to estimate Thermal Noise (see mail from David Brockley)
                 tau=3.03 #gate width in nanoseconds
-                startgate=8 #First gate to be considered in the retracking window, we choose this because first gates are often corrupted
+                startgate=8*interpolation_factor #First gate to be considered in the retracking window, we choose this because first gates are often corrupted
                 ALEScoeff0=8.90 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
                 ALEScoeff1=2.03 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory  
-                # # AKIMA INTERPOLATION                
-                # waveform_resampled=np.empty(np.size(waveform))*np.nan
-                # y=waveform # 11 May 2015: forced conversion to double                
-                # x=np.arange(1*tau,64*tau+0.01,tau)
-                # x[-1]=round(x[-1],5)
-                # xi=np.arange(1*tau,64*tau+0.01,tau/2)
-                # xi[-1]=round(xi[-1],5)
-                # yi=self.akima_interpolate(x,y,xi)
-                # waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
-                # # END AKIMA INTERPOLATION
-                # waveform = waveform_resampled    
+                # AKIMA INTERPOLATION                
+                waveform_resampled=np.empty(np.size(waveform))*np.nan
+                y=waveform # 11 May 2015: forced conversion to double                
+                x=np.arange(1*tau,64*tau+0.01,tau)
+                x[-1]=round(x[-1],5)
+                xi=np.arange(1*tau,64*tau+0.01,tau/2)
+                xi[-1]=round(xi[-1],5)
+                yi=self.akima_interpolate(x,y,xi)
+                waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
+                # END AKIMA INTERPOLATION
+                waveform = waveform_resampled    
 
 
         else:
@@ -410,7 +411,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         edgestart=1
         edgeend=1
         
-        wv=D[index_originalbins]
+        if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' :
+            wv0=D[index_originalbins]
+            kernel_size = 3
+            kernel = np.ones(kernel_size) / kernel_size
+            wv = np.convolve(wv0, kernel, mode='same')
+        else:
+            wv=D[index_originalbins] # old version of 'wv'
+
         
         Dwv=np.diff(wv)
         i = 4 #Gate where the search starts
@@ -485,8 +493,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
                 if exitflag_yang==0: 
-                #if convergence is not reached, we might need more gates (growingdue+2) 
-                    growingdue=growingdue+2
+                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' :
+                        if growingdue < 6 : #In the special case of Saral and ERS, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
+                                            #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time
+                            growingdue=growingdue+2
+                        else:
+                            break
+                    else:
+                        growingdue=growingdue+2
                 else: #else then we can stop the while cycle
                         break
                     

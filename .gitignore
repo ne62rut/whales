@@ -7,3 +7,10 @@ E2*
 try*
 whales/test_files/*
 test_files/*
+E1_REAP*
+E2_REAP*
+JA3_GPS*
+**/E1_REAP*
+**/E2_REAP*
+**/JA3_GPS*
+
