@@ -38,6 +38,8 @@ class Retracker_MP:
     costfunction = None
     weight_outsub = 1.
     sqrtn = np.sqrt(90.)
+    nominal_tracking_gate = 31
+    total_gate_number = None
     # weights = None #Weights used for the estimation of SWH
     # weights_flag = None #Flag that identifies start and end of the leading edge in the weight distribution
 
@@ -57,8 +59,9 @@ class Retracker_MP:
     b5 = None
 
     # ADDITIONAL RETRACKER OUTPUT FROM ALES    
-    gate1 = None  # MP added initial gate of the leading edge
-    gate2 = None  # MP added end gate of the leading edge
+    gate1 = 0  # MP added initial gate of the leading edge
+    gate2 = 0  # MP added end gate of the leading edge
+    gate3 = 0
     Wt_all_yang = None  # MP added normalised fitted waveform - first pass
     Wt_all_LESfive = None  # MP added normalised fitted waveform - second pass
     D = None  # MP added Normalised real waveform
@@ -70,6 +73,7 @@ class Retracker_MP:
     classifier = None
     interpolator = None
     Sigma = None  # MP added Rising Time of the leading edge
+    smooth = 0 # MD added smoothing of waveform before detection of leading edge 
 
     ' speed of light [m/s] '
     c = 299792458
@@ -151,10 +155,16 @@ class Retracker_MP:
             self.Theta = config['Theta']
         if 'SigmaP' in config:
             self.SigmaP = config['SigmaP']
+        if 'total_gate_number' in config:
+            self.total_gate_number = config['total_gate_number']
+        if 'nominal_tracking_gate' in config:
+            self.ominal_tracking_gate = config['nominal_tracking_gate']
         if 'weights_type' in config:
             self.weights_type = config['weights_type']
         if 'costfunction' in config:
             self.costfunction = config['costfunction']
+        if 'smooth' in config:
+            self.smooth = config['smooth']
 
         ' debug flag '
         if 'debug' in config:

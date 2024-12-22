@@ -10,13 +10,15 @@ Works for the following missions: Jason, Jason-2, Jason-3, SARAL, Cryosat 2 (LRM
 
 Examples of use from command line: 
 python python_WHALES_launcher.py -m jason3f -i JA3_GPS_2PfP342_001_20230609_173418_20230609_183031.nc -o WHALES
-python python_WHALES_launcher.py -m swot -w 2 -o WHALES2  -i SWOT_GPS_2PfP549_004_20230611_125241_20230611_134346.nc 
-python python_WHALES_launcher.py -m saral -i SRL_GPS_2PfP001_0641_20130405_141055_20130405_150113.CNES.nc -o WHALES_SARAL
-python python_WHALES_launcher.py -m swot -w 2 -o SWOT -i SWOT_GPS_2PfP012_567_20240326_230842_20240327_000009.nc
-        2024-07-19: added possibility to use 1/waveform for the weights (FA)
+python python_WHALES_launcher.py -m swot   -i SWOT_GPS_2PfP549_004_20230611_125241_20230611_134346.nc -w 2 -o WHALES2
+python python_WHALES_launcher.py -m saral -s 3 -i SRL_GPS_2PfP001_0641_20130405_141055_20130405_150113.CNES.nc -o WHALES
+python python_WHALES_launcher.py -m swot -s 3 -w 2  -i SWOT_GPS_2PfP012_567_20240326_230842_20240327_000009.nc -o WHALES
+
+        2024-07-19: added possibility to use 1/waveform for the weights               : F. Ardhuin
+	2024-12-20: adds optional smoothing (gives better results for SARAL and SWOT) : M. De Carlo, F. Ardhuin
 """
+
 import argparse
-# import cmath
 import netCDF4
 from netCDF4 import Dataset
 import numpy as np
@@ -27,17 +29,14 @@ import scipy.io
 import os
 import time
 from compute_instr_corr_SWH_WHALES import compute_instr_corr_SWH_WHALES
-# import sys
-# from read_functions import wf_reader
 
 from Retracker_MP import *
 
 from WHALES_withRangeAndEpoch import *
 
-from scipy.io import matlab
-# import pandas as pd
-
 from import_weights_npz import *
+
+from altimeters_parameters import *
 
 
 def get_options():
@@ -69,11 +68,15 @@ def get_options():
     )
     parser.add_argument(
         '-W', '--weightoutofsub', type=float, default=1.0,
-        help='value of weight outside of subwaveform: default = 1.0'
+        help='value of 1/weight outside of subwaveform: default = 1.0'
     )
     parser.add_argument(
         '-d', '--debug', type=str, default='0',
         help='-d=1 will output waveforms and weights'
+    )
+    parser.add_argument(
+        '-s', '--smooth', type=int, default=0,
+        help='size of kernel for smoothing waveform before leading edge detection: for SARAL use 3'
     )
 
     return parser.parse_args()
@@ -86,6 +89,7 @@ weights_type = options.weights
 costfunction = options.costfunction
 weight_outsub = options.weightoutofsub
 debug=options.debug
+smooth=options.smooth
 print('weight type:',weights_type)
 print('constfunction:',costfunction)
 print('weight out of sub:',weight_outsub)
@@ -98,48 +102,9 @@ cal2 = 'on'
 add_instr_corr_SWH = 'no'
 import_weights = 'yes'
 
-
-tau=3.125 #gate spacing in ns
-SigmaP=0.513*tau
-nump=90
-# Mission-dependent parameters and files to be loaded
-if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm':           
-    tau=3.03
-    Theta=1.3 *np.pi/180
-    SigmaP=0.513*tau    
-    nump=50
-if mission in ['envisat']:
-    my_path_instr_corr_SWH = ''
-    my_path_weights = 'weights/weights_n1.mat'
-    Theta=1.35 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
-    SigmaP=0.53*tau #from Gomez Enri 2006. Otherwise use:%1.6562; %ns =0.53*3.125ns
-elif mission in ['jason1']:
-    my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_MLE4_jason1SGDRc.mat'
-    my_path_weights = 'weights/weights.mat'
-    Theta=1.29 *np.pi/180
-elif mission in ['jason2']:
-    my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_WHALES_jason2SGDRd.mat'
-    my_path_weights = 'weights/weights_J2.pkl'
-    Theta=1.29 *np.pi/180
-elif mission in ['jason3', 'jason3f','jason3f2','swot']:
-    my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat'
-    my_path_weights = 'weights/weights_J2.pkl'
-    Theta=1.29 *np.pi/180
-elif mission.lower() in ['altika', 'saral', 'saral_igdr']:
-    my_path_instr_corr_SWH = ''
-    my_path_weights = 'weights/weights_alt.mat'
-    tau=3.125*320/480
-    Theta=0.605 *np.pi/180
-    SigmaP=0.513*tau
-    nump=100
-elif mission in ['cs2_lrm']:
-    my_path_instr_corr_SWH = ''
-    my_path_weights = 'weights/weights_cs2_lrm.mat'
-    tau=3.125 #gate spacing in ns
-    Theta=1.1992 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
-    SigmaP=0.513*tau    
-    nump=95 
-
+Theta,tau,SigmaP,nump,total_gate_number,nominal_tracking_gate=instrument_parameters(mission)
+my_path_instr_corr_SWH,my_path_weights=setpaths_corrections(mission) 
+noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs=processing_choices(mission)
 
 if my_path_instr_corr_SWH != '':
     my_path_instr_corr_SWH = os.path.join(
@@ -412,7 +377,7 @@ elif mission in ['cs2_lrm']:
     # print(np.shape(S_height))
 
     S_tracker = np.ma.getdata(
-        S.variables['window_del_20_ku'][:] * (299792458.0) / 2.0)
+        S.variables['window_del_20_ku'][:] * (299792458.0) / 2.0)      # warning : light speed should be constant 
     S_tracker = np.reshape(S_tracker, (np.shape(S_time)[0], 1))
 
     # S_range=np.ma.getdata( S.variables['range_ocean_20_ku'][:] )
@@ -455,10 +420,11 @@ print(np.shape(S_waveform),'shape of S_time array:',np.shape(S_time),', nr=',nr)
 landmask = np.empty(np.shape(S_time)) * np.nan
 
 swh_WHALES = np.empty(np.shape(S_time)) * np.nan
-startgate_WHALES = np.empty(np.shape(S_time)) * np.nan
-endgate_WHALES = np.empty(np.shape(S_time)) * np.nan
+startgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint8)
+endgate_WHALES   = np.empty(np.shape(S_time),dtype=np.uint8)
+finalgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint8) 
 
-Err_WHALES = np.empty(np.shape(S_time)) * np.nan
+Err_WHALES = np.empty(np.shape(S_time),dtype=np.uint8)
 Epoch_WHALES = np.empty(np.shape(S_time)) * np.nan
 Amplitude_WHALES = np.empty(np.shape(S_time)) * np.nan
 
@@ -472,15 +438,24 @@ range_WHALES = np.empty(np.shape(S_time)) * np.nan
 swh_WHALES_instr_corr = np.empty(np.shape(S_time)) * np.nan
 
 
-#
-# Creates NetCDF file
-# 
+#########################################################################################
+#   Creation of NetCDF output file
+#########################################################################################
 w_nc_fid = Dataset(saving_name, 'w',
                    format='NETCDF3_CLASSIC')
 w_nc_fid.createDimension('time', np.shape(time_20hz)[0])
 w_nc_fid.createDimension('records', np.shape(time_20hz)[1])
 if debug=='1':
     w_nc_fid.createDimension('gates', nr)
+
+# global attributes: 
+w_nc_fid.smooth=smooth
+w_nc_fid.weight_outsub=weight_outsub
+w_nc_fid.ALEScoeff0=ALEScoeff0
+w_nc_fid.ALEScoeff1=ALEScoeff1
+w_nc_fid.threshold_a=thra
+w_nc_fid.threshold_b=thrb
+w_nc_fid.maxHs=maxHs
 
 w_nc_var = w_nc_fid.createVariable('time_20hz', 'f8', ('time', 'records'),
                                    zlib=True)
@@ -489,14 +464,14 @@ w_nc_var.setncatts({'long_name': u"time_20hz", \
                     'comment': u"time in seconds"})
 w_nc_fid.variables['time_20hz'][:] = S_time
 
-w_nc_var = w_nc_fid.createVariable('lat_20hz', 'f8', ('time', 'records'),
+w_nc_var = w_nc_fid.createVariable('lat_20hz', 'f4', ('time', 'records'),
                                    zlib=True)
 w_nc_var.setncatts({'long_name': u"lat_20hz", \
                     'units': u"deg", \
                     'comment': u" "})
 w_nc_fid.variables['lat_20hz'][:] = S_lat
 
-w_nc_var = w_nc_fid.createVariable('lon_20hz', 'f8', ('time', 'records'),
+w_nc_var = w_nc_fid.createVariable('lon_20hz', 'f4', ('time', 'records'),
                                    zlib=True)
 w_nc_var.setncatts({'long_name': u"lon_20hz", \
                     'units': u"deg", \
@@ -504,18 +479,21 @@ w_nc_var.setncatts({'long_name': u"lon_20hz", \
 w_nc_fid.variables['lon_20hz'][:] = S_lon
 
 if debug=='1':
-    w_nc_var1 = w_nc_fid.createVariable('normalized_waveform', 'f8', ('time', 'records','gates'),
+    w_nc_var1 = w_nc_fid.createVariable('normalized_waveform', 'f4', ('time', 'records','gates'),
                                    zlib=True)
 
-    w_nc_var2 = w_nc_fid.createVariable('weights', 'f8', ('time', 'records','gates'),
+    w_nc_var2 = w_nc_fid.createVariable('weights', 'f4', ('time', 'records','gates'),
                                    zlib=True)
 
+    w_nc_var3 = w_nc_fid.createVariable('fitted_waveform', 'f4', ('time', 'records','gates'),
+                                   zlib=True)
 
 #
 # Now looping over waveforms for retracking
 # First loop is on 1 Hz data, second loop is on higher rate data (20 Hz for Jason)
 #
 for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
+#for index_waveforms_row in np.arange(0, 10, 1):
     print("Retracking waveform group " + str(index_waveforms_row) + "  of  " +
               str(np.shape(S_time)[0]))
     for index_waveforms_col in np.arange(0, np.shape(S_time)[1], 1):
@@ -525,9 +503,6 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         if cal2 == 'on':
             if mission == 'jason3':
 # Application of CAL-2 where known
-# FA: I would be happy to have more details on this "cal-2" 
-            #J1_filter = np.loadtxt('J1_MeanFilterKu')
-            #J1_filter_norm = J1_filter / np.mean(J1_filter[11:115])
                 J3_filter = np.loadtxt('cal2/J3_MeanFilterKu')
                 J3_filter_norm = J3_filter / np.mean(J3_filter[11:115])
                 input['waveform'] = S_waveform[
@@ -549,11 +524,7 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
             elif mission == 'cs2_lrm':
                 input['waveform'] = S_waveform[index_waveforms_row, :]
             elif mission == 'swot':
-                J2_filter = np.loadtxt('cal2/J3_MeanFilterKu')
-                J2_filter_norm = J2_filter / np.mean(J2_filter[11:115])
-                input['waveform'] = S_waveform[index_waveforms_row,
-                                    index_waveforms_col, :] / J2_filter_norm[
-                                                              11:115]
+                input['waveform'] = S_waveform[index_waveforms_row, index_waveforms_col, :] 
         else:
             input['waveform'] = S_waveform[index_waveforms_row,
                                 index_waveforms_col, :]
@@ -584,7 +555,10 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         input['Theta']  = Theta 
         input['SigmaP']  = SigmaP
         input['sqrtn']  = np.sqrt(nump)
+        input['total_gate_number']=total_gate_number
+        input['nominal_tracking_gate']=nominal_tracking_gate
         input['weight_outsub']  = weight_outsub
+        input['smooth'] = smooth
 #
 # Calls retracker 
 #
@@ -604,7 +578,7 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
 #
         startgate_WHALES[index_waveforms_row, index_waveforms_col] = retracker.gate1
         endgate_WHALES[index_waveforms_row, index_waveforms_col] = retracker.gate2
-        
+        finalgate_WHALES[index_waveforms_row, index_waveforms_col] = retracker.gate3
         Epoch_WHALES[index_waveforms_row, index_waveforms_col] = retracker.Epoch
 
         if mission in ['envisat', 'envisat_over']:
@@ -647,46 +621,47 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         if debug=='1':
             w_nc_fid.variables['normalized_waveform'][index_waveforms_row,index_waveforms_col,:] = retracker.D
             w_nc_fid.variables['weights'][index_waveforms_row,index_waveforms_col,:] = retracker.this_weights
+            w_nc_fid.variables['fitted_waveform'][index_waveforms_row,index_waveforms_col,:] = retracker.model
     print('Hs:',np.shape(swh_WHALES),np.mean(swh_WHALES[index_waveforms_row,:]),' std:',np.std(swh_WHALES[index_waveforms_row,:]))
 
 
 # now writes retracked values 
-w_nc_var = w_nc_fid.createVariable('swh_WHALES_20hz', 'f8', ('time', 'records'),
+w_nc_var = w_nc_fid.createVariable('swh_WHALES_20hz', 'f4', ('time', 'records'),
                                    zlib=True)
 w_nc_var.setncatts({'long_name': u"swh_WHALES_20hz", \
                     'units': u"m", \
                     'comment': u" "})
 w_nc_fid.variables['swh_WHALES_20hz'][:] = swh_WHALES
 
-w_nc_var = w_nc_fid.createVariable('swh_WHALES_instr_corr_20hz', 'f8',
+w_nc_var = w_nc_fid.createVariable('swh_WHALES_instr_corr_20hz', 'f4',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"swh_WHALES_instr_corr_20hz", \
                     'units': u"m", \
                     'comment': u" "})
 w_nc_fid.variables['swh_WHALES_instr_corr_20hz'][:] = swh_WHALES_instr_corr
 
-w_nc_var = w_nc_fid.createVariable('sigma0_WHALES_20hz', 'f8',
+w_nc_var = w_nc_fid.createVariable('sigma0_WHALES_20hz', 'f4',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"sigma0_WHALES_20hz", \
                     'units': u"dB", \
                     'comment': u" "})
 w_nc_fid.variables['sigma0_WHALES_20hz'][:] = sigma0_WHALES
 
-w_nc_var = w_nc_fid.createVariable('range_WHALES_20hz', 'f8',
+w_nc_var = w_nc_fid.createVariable('range_WHALES_20hz', 'f4',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"range_WHALES_20hz", \
                     'units': u"m", \
                     'comment': u" "})
 w_nc_fid.variables['range_WHALES_20hz'][:] = range_WHALES
 
-w_nc_var = w_nc_fid.createVariable('epoch_WHALES_20hz', 'f8',
+w_nc_var = w_nc_fid.createVariable('epoch_WHALES_20hz', 'f4',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"epoch_WHALES_20hz", \
                     'units': u"m", \
                     'comment': u" "})
 w_nc_fid.variables['epoch_WHALES_20hz'][:] = Epoch_WHALES
 
-w_nc_var = w_nc_fid.createVariable('swh_WHALES_qual_20hz', 'f8',
+w_nc_var = w_nc_fid.createVariable('swh_WHALES_qual_20hz', 'i2',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"quality flag for Significant waveheight", \
                     'units': u"count", \
@@ -696,15 +671,19 @@ w_nc_fid.variables['swh_WHALES_qual_20hz'][:] = Err_WHALES
 #
 # Added by Fabrice to keep track of range gate indices that define the subwaveform 
 #
-w_nc_var = w_nc_fid.createVariable('startgate_WHALES', 'f8',
+w_nc_var = w_nc_fid.createVariable('startgate_WHALES', 'i2',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"first index of subwaveform"})
 w_nc_fid.variables['startgate_WHALES'][:] = startgate_WHALES
 
-w_nc_var = w_nc_fid.createVariable('endgate_WHALES', 'f8',
+w_nc_var = w_nc_fid.createVariable('endgate_WHALES', 'i2',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"last index of subwaveform"})
 w_nc_fid.variables['endgate_WHALES'][:] = endgate_WHALES
+w_nc_var = w_nc_fid.createVariable('finalgate_WHALES', 'i2',
+                                   ('time', 'records'), zlib=True)
+w_nc_var.setncatts({'long_name': u"last index of retracking"})
+w_nc_fid.variables['finalgate_WHALES'][:] = finalgate_WHALES
 
 
 w_nc_fid.close()  # close the new file

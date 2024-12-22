@@ -2,7 +2,7 @@
 """
 Created on Mon May 29 2023
 
-@author: ardhuin
+@author: M. Passaro & F. ardhuin
 """
 
 """waveform_models.py: A Python module for LRM waveform models
