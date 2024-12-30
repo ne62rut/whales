@@ -99,7 +99,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             tau=3.125
             Theta=1.29 *np.pi/180
             SigmaP=0.513*tau
-        if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm':           
+        if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1':           
             tau=3.03
             Theta=1.3 *np.pi/180
             SigmaP=0.513*tau    
@@ -175,7 +175,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         if mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3': 
             tau=3.125
             nominal_tracking_gate=31
-        if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm': 
+        if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1': 
             tau=3.03
             nominal_tracking_gate=33
         if mission.lower() == 'cs2_lrm':
@@ -337,7 +337,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 print("Mission not yet supported")
                 sys.exit(0)
                 
-        elif mission.lower() == 'ers2_r_2cm':
+        elif mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1':
                 interpolation_factor=2
                 index_originalbins=np.arange(0,63*interpolation_factor,interpolation_factor)
                 total_gate_number=64*interpolation_factor
@@ -445,8 +445,13 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 i=i+1
         
 
-        gate2=index_originalbins[edgeend+1]  #Gate2 is the end of the leading edge on the interpolated waveform. One gate of tolerance is added for numerical reasons (for example if a leading-edge-only retracking is attempted)
-        gate1=index_originalbins[edgestart]  #Gate1 is the start of the leading edge on the waveform
+        if mission.lower() == 'ers1':        
+            gate2=index_originalbins[edgeend+2] #we extend the end of the leading edge by one further gate due to low leading edge sampling in ers
+            gate1=index_originalbins[edgestart]
+        else:  
+            gate2=index_originalbins[edgeend+1]
+            gate1=index_originalbins[edgestart]
+
 
         self.gate2=gate2
         self.gate1=gate1
