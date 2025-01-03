@@ -237,7 +237,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         # NOTE THAT:
         # Waveforms are not oversampled, because Jason has been tested with the addition of 
         # weights, whose distribution might change if we oversample the waveform.   
-        noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs=processing_choices(mission)
+        noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin=processing_choices(mission)
             
         index_originalbins=np.arange(0,self.total_gate_number-1,1)        
                 
@@ -256,7 +256,13 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
 # STEP 1: NOISE ESTIMATION                 
         estimated_noise = np.nanmean(waveform[noisegates])
+        if noisemin==1:
+            estimated_noise2=np.nanmin(waveform[noisegates[0]:self.nominal_tracking_gate])*0.99999
+            if (estimated_noise > estimated_noise2*3):  # keeps the mean value if possible 
+                estimated_noise=estimated_noise2
+                noisegates[0]=np.argmin(waveform[noisegates[0]+4:self.nominal_tracking_gate])
         C = waveform - estimated_noise;
+        self.noise=estimated_noise
         #inds=np.where(C[20:110] < 0)[0]
         #C=np.where(C < 0,0,C)
         #inds2=np.where(C[20:110] < 0)[0]
@@ -268,6 +274,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here
         normalize_factor=1.3*np.nanmedian(C[igoodsample]);        
         D=C/normalize_factor
+        self.scale=estimated_noise
             
 # STEP 3: DEFINING RETRACKING ABSCISSA (xdata)
         xdata=np.empty([self.total_gate_number,])*np.nan
@@ -299,25 +306,28 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             wv=D[index_originalbins] # old version of 'wv'
         
         Dwv=np.diff(wv)
-        i = 4 #Gate where the search starts (avoids wrap-up of ERS for example)
+        i = noisegates[0] #4 #Gate where the search starts (avoids wrap-up of ERS for example)
         
         while i<=np.size(wv)-5 :
             #In order to be the leading edge, it doesn't have to go below
             #the 1% of its maximum in the space of few gates
-            if Dwv[i]>0.01 and wv[i+1]>0.1 and wv[i+2]> thra and wv[i+3]> thra and wv[i+4]> thra:
+            if Dwv[i]>0.01 and wv[i+1]>thra and wv[i+2]> thra and wv[i+3]> thra and wv[i+4]> thra:
                 edgestart=i # FOUND THE START OF THE LEADING EDGE
                 
                 while i<=np.size(Dwv)-4 :
                     #if the slope is negative for more than one gate, then the trailing edge
                     #is starting
-                        if Dwv[i]<0 and wv[i+1]>thrb:
+                    if wv[i+1]>thrb:  # extra test added by FA for very large sea states and blooms (works OK with thrb>0.6 . 0.8 too large for some cases) 
+                        edgeend=i # FOUND THE END OF THE LEADING EDGE    
+                        if Dwv[i]<0 :
                             if Dwv[i+1]>0 and Dwv[i+2]>0 and Dwv[i+3]>0 : #if following gates are still growing, it's only a perturbation of the leading edge
                                 i=i+1
                             else :
-                                edgeend=i # FOUND THE END OF THE LEADING EDGE                           
                                 break
                         else :
                             i=i+1
+                    else :
+                        i=i+1
                 break
             else :
                 i=i+1
@@ -349,7 +359,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             tol_Err_yang=Err_tolerance_vector
             x1_yang[2]=0 #initialising to start the while cycle
             growingdue=0 #variation of the number of gates considered
-            SWH=0
+            SWH=0.1  # if not initialized here, SWH may not be defined with thrb=0.7  (maybe edgeend ins undefined ??) 
             while Err_yang>tol_Err_yang and (gate2+growingdue)<self.total_gate_number and sigma_initial<100 :
             #while cycle: check on the Fitting Error, check that the number of available gates is not being exceeding, check that initial condition has been defined as a number (sigma_inital<100, could be removed)    
                 
@@ -488,7 +498,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  this_weights[gate1:gatemax]=weights_select[index_startweight:index_startweight+gatemax-gate1]
 
                             elif self.weights_type == 2:
-                                 x1_brown[0]=x1_yang[0]
+                                 x1_brown=x1_yang
                                  x1_brown[1]=max(x1_yang[1],minHs) 
                                  x1_brown[2]=1   # need to check the impact of this ... 
                                  this_weights=np.zeros(len(waveform))+self.weight_outsub

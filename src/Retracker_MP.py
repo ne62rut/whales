@@ -62,6 +62,7 @@ class Retracker_MP:
     gate1 = 0  # MP added initial gate of the leading edge
     gate2 = 0  # MP added end gate of the leading edge
     gate3 = 0
+    noise = 0.0
     Wt_all_yang = None  # MP added normalised fitted waveform - first pass
     Wt_all_LESfive = None  # MP added normalised fitted waveform - second pass
     D = None  # MP added Normalised real waveform

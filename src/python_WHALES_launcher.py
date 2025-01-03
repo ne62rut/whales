@@ -104,7 +104,7 @@ import_weights = 'yes'
 
 Theta,tau,SigmaP,nump,total_gate_number,nominal_tracking_gate=instrument_parameters(mission)
 my_path_instr_corr_SWH,my_path_weights=setpaths_corrections(mission) 
-noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs=processing_choices(mission)
+noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin=processing_choices(mission)
 
 if my_path_instr_corr_SWH != '':
     my_path_instr_corr_SWH = os.path.join(
@@ -423,6 +423,8 @@ swh_WHALES = np.empty(np.shape(S_time)) * np.nan
 startgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint8)
 endgate_WHALES   = np.empty(np.shape(S_time),dtype=np.uint8)
 finalgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint8) 
+noise_WHALES = np.empty(np.shape(S_time)) * np.nan
+scale_WHALES = np.empty(np.shape(S_time)) * np.nan
 
 Err_WHALES = np.empty(np.shape(S_time),dtype=np.uint8)
 Epoch_WHALES = np.empty(np.shape(S_time)) * np.nan
@@ -456,6 +458,7 @@ w_nc_fid.ALEScoeff1=ALEScoeff1
 w_nc_fid.threshold_a=thra
 w_nc_fid.threshold_b=thrb
 w_nc_fid.maxHs=maxHs
+w_nc_fid.noise_floor_is_min=noisemin
 
 w_nc_var = w_nc_fid.createVariable('time_20hz', 'f8', ('time', 'records'),
                                    zlib=True)
@@ -503,28 +506,35 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         if cal2 == 'on':
             if mission == 'jason3':
 # Application of CAL-2 where known
-                J3_filter = np.loadtxt('../data/cal2/J3_MeanFilterKu')
-                J3_filter_norm = J3_filter / np.mean(J3_filter[11:115])
+                pathcal=os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/cal2/J3_MeanFilterKu')
+                filter = np.loadtxt(pathcal)
+                filter_norm = filter / np.mean(filter[11:115])
                 input['waveform'] = S_waveform[
-                    index_waveforms_row, index_waveforms_col, :] / \
-                                    J3_filter_norm[11:115]
+                    index_waveforms_row, index_waveforms_col, :] / filter_norm[11:115]
             elif mission == 'jason2':
-                J2_filter = np.loadtxt('../data/cal2/J2_MeanFilterKu')
-                J2_filter_norm = J2_filter / np.mean(J2_filter[11:115])
-                input['waveform'] = S_waveform[index_waveforms_row,
-                                    index_waveforms_col, :] / J2_filter_norm[
-                                                              11:115]
+                pathcal=os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/cal2/J2_MeanFilterKu')
+                filter = np.loadtxt(pathcal)
+                filter_norm = filter / np.mean(filter[11:115])
+                input['waveform'] = S_waveform[
+                    index_waveforms_row, index_waveforms_col, :] / filter_norm[11:115]
             elif mission == 'saral':
-                saral_filter = np.loadtxt('../data/cal2/ALK_MeanFilter')
-                saral_filter_norm = saral_filter / np.mean(saral_filter)
+                pathcal=os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/cal2/ALK_MeanFilter')                
+                filter = np.loadtxt(pathcal)
+                filter_norm = filter / np.mean(filter)
                 input['waveform'] = S_waveform[index_waveforms_row,
-                                    index_waveforms_col, :] / saral_filter_norm
+                                    index_waveforms_col, :] / filter_norm
             elif mission == 'envisat':
                 input['waveform'] = S_waveform[index_waveforms_row, :]
             elif mission == 'cs2_lrm':
                 input['waveform'] = S_waveform[index_waveforms_row, :]
-            elif mission == 'swot':
-                input['waveform'] = S_waveform[index_waveforms_row, index_waveforms_col, :] 
+            elif mission == 'swot': # uses J3 cal2 ... 
+                pathcal=os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/cal2/J3_MeanFilterKu')
+                filter = np.loadtxt(pathcal)
+                filter_norm = filter / np.mean(filter[11:115])
+                input['waveform'] = S_waveform[
+                    index_waveforms_row, index_waveforms_col, :] / filter_norm[11:115]
+#           
+#                input['waveform'] = S_waveform[index_waveforms_row, index_waveforms_col, :] 
         else:
             input['waveform'] = S_waveform[index_waveforms_row,
                                 index_waveforms_col, :]
@@ -580,6 +590,8 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         endgate_WHALES[index_waveforms_row, index_waveforms_col] = retracker.gate2
         finalgate_WHALES[index_waveforms_row, index_waveforms_col] = retracker.gate3
         Epoch_WHALES[index_waveforms_row, index_waveforms_col] = retracker.Epoch
+        noise_WHALES[index_waveforms_row, index_waveforms_col] = retracker.noise
+        scale_WHALES[index_waveforms_row, index_waveforms_col] = retracker.scale
 
         if mission in ['envisat', 'envisat_over']:
             sigma0_WHALES[
@@ -684,6 +696,16 @@ w_nc_var = w_nc_fid.createVariable('finalgate_WHALES', 'i2',
                                    ('time', 'records'), zlib=True)
 w_nc_var.setncatts({'long_name': u"last index of retracking"})
 w_nc_fid.variables['finalgate_WHALES'][:] = finalgate_WHALES
+
+w_nc_var = w_nc_fid.createVariable('scale_WHALES', 'f4',
+                                   ('time', 'records'), zlib=True)
+w_nc_var.setncatts({'long_name': u"scaling for waveform normalization"})
+w_nc_fid.variables['scale_WHALES'][:] = scale_WHALES
+w_nc_var = w_nc_fid.createVariable('noise_WHALES', 'f4',
+                                   ('time', 'records'), zlib=True)
+w_nc_var.setncatts({'long_name': u"noise level of waveform"})
+w_nc_fid.variables['noise_WHALES'][:] = noise_WHALES
+
 
 
 w_nc_fid.close()  # close the new file

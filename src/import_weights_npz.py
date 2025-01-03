@@ -70,7 +70,6 @@ def import_weights_npz(pickle_file_path):
 
 def import_weights_mat(my_path_weights)     :
     import h5py  
-    print('COUCOU:',my_path_weights)
     mat_weights = h5py.File(my_path_weights,'r')
     residual_std=np.transpose(mat_weights['residual_tot']) 
     flag_edges=np.transpose(mat_weights['flag_edges'])
