@@ -503,19 +503,19 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         if cal2 == 'on':
             if mission == 'jason3':
 # Application of CAL-2 where known
-                J3_filter = np.loadtxt('cal2/J3_MeanFilterKu')
+                J3_filter = np.loadtxt('../data/cal2/J3_MeanFilterKu')
                 J3_filter_norm = J3_filter / np.mean(J3_filter[11:115])
                 input['waveform'] = S_waveform[
                     index_waveforms_row, index_waveforms_col, :] / \
                                     J3_filter_norm[11:115]
             elif mission == 'jason2':
-                J2_filter = np.loadtxt('cal2/J2_MeanFilterKu')
+                J2_filter = np.loadtxt('../data/cal2/J2_MeanFilterKu')
                 J2_filter_norm = J2_filter / np.mean(J2_filter[11:115])
                 input['waveform'] = S_waveform[index_waveforms_row,
                                     index_waveforms_col, :] / J2_filter_norm[
                                                               11:115]
             elif mission == 'saral':
-                saral_filter = np.loadtxt('cal2/ALK_MeanFilter')
+                saral_filter = np.loadtxt('../data/cal2/ALK_MeanFilter')
                 saral_filter_norm = saral_filter / np.mean(saral_filter)
                 input['waveform'] = S_waveform[index_waveforms_row,
                                     index_waveforms_col, :] / saral_filter_norm

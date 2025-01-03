@@ -57,29 +57,29 @@ def  instrument_parameters(mission)  :
 def  setpaths_corrections(mission)  :
     if mission in ['envisat']:
         my_path_instr_corr_SWH = ''
-        my_path_weights = 'weights/weights_n1.mat'
+        my_path_weights = '../data/weights/weights_n1.mat'
     elif mission in ['jason1']:
         my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_MLE4_jason1SGDRc.mat'
-        my_path_weights = 'weights/weights.mat'
+        my_path_weights = '../data/weights/weights.mat'
     elif mission in ['jason2']:
         my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_WHALES_jason2SGDRd.mat'
-        my_path_weights = 'weights/weights_J2.pkl'
+        my_path_weights = '../data/weights/weights_J2.pkl'
     elif mission in ['jason3', 'jason3f','jason3f2','swot']:
         my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat'
-        my_path_weights = 'weights/weights_J2.pkl'
+        my_path_weights = '../data/weights/weights_J2.pkl'
     elif mission.lower() in ['altika', 'saral', 'saral_igdr']:
         my_path_instr_corr_SWH = ''
-        my_path_weights = 'weights/weights_alt.mat'
+        my_path_weights = '../data/weights/weights_alt.mat'
     elif mission in ['cs2_lrm']:
         my_path_instr_corr_SWH = ''
-        my_path_weights = 'weights/weights_cs2_lrm.mat'
+        my_path_weights = '../data/weights/weights_cs2_lrm.mat'
     return my_path_instr_corr_SWH,my_path_weights
 
 ################################################################################################################    
 def  processing_choices(mission)  :
     thra=0.06   # threshold for normalized waveform at second range gate of leading edge
     # This second threshold was introduced by FA (to recover previous behavior, set thrb to 0) . 
-    thrb=0.8   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
+    thrb=0.0   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
     minHs=0.2
     maxHs=30
     if mission.lower() == 'envisat':

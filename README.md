@@ -15,7 +15,7 @@ Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mi
 
 First, clone this repository:
 
-    $ git clone https://gitlab.lrz.de/ne62rut/seastatecci_whales.git
+    $ git clone https://gitlab.ifremer.fr/cciseastate/whales               NB: this was originally cloned from!:   https://gitlab.lrz.de/ne62rut/seastatecci_whales.git
 
 Go into newly created directory, to which the repository was cloned
 
@@ -32,7 +32,7 @@ Switch to into the "isolated" virtual environment
     $ conda activate seastatecci_whales
 
 
-## Usage
+## Usage and command line options
 
 To run the retracker, open 
 
