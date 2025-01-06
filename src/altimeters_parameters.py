@@ -25,11 +25,12 @@ def  instrument_parameters(mission)  :
     nominal_tracking_gate=31     
                 
 # Mission-dependent parameters and files to be loaded
-    if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm':           
+    if mission.lower() in ['ers2','ers2_r','ers2_r_2cm']:           
         tau=3.03
         Theta=1.3 *np.pi/180
         SigmaP=0.513*tau    
         nump=50
+        total_gate_number=64
     if mission in ['envisat']:
         Theta=1.35 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
         SigmaP=0.53*tau #from Gomez Enri 2006. Otherwise use:%1.6562; %ns =0.53*3.125ns
@@ -61,6 +62,9 @@ def  setpaths_corrections(mission)  :
     if mission in ['envisat']:
         my_path_instr_corr_SWH = ''
         my_path_weights = '../data/weights/weights_n1.mat'
+    elif mission in ['ers2','ers1'] :
+        my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat' 
+        my_path_weights='../data/weights/weights_ers2.pkl'       
     elif mission in ['jason1']:
         my_path_instr_corr_SWH = 'instr_corr/SWHinstrcorr_MLE4_jason1SGDRc.mat'
         my_path_weights = '../data/weights/weights.mat'
@@ -154,6 +158,20 @@ def  alti_read_l2lr(mission,filename):
     import xarray as xr
 
     S = netCDF4.Dataset(filename, 'r')
+    if mission.lower() in ['ers2','ers2_r_2cm']:
+    # example file='CS_LTA__SIR_LRM_2__20101231T000154_20101231T000927_E001.nc'
+        swh1 = np.ma.getdata(S.variables['swh'][:])   # this is MLE4
+        lat1  = np.ma.getdata(S.variables['lat'][:])
+        lon1  = np.ma.getdata(S.variables['lon'][:])
+        time1 = np.ma.getdata(S.variables['time'][:])
+        try:
+            flag1 = 3 - np.ma.getdata(S.variables['swh_quality_level'][:])
+        except KeyError:
+           print("Variable 'swh_quality_level' not found in the dataset.")
+           # Handle missing data or use a default value
+           flag1 = np.zeros_like(S.variables['time'][:])  # or other default behavior
+
+        timeref= "1981-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
     if mission.lower() in ['cryosat2']:
     # example file='CS_LTA__SIR_LRM_2__20101231T000154_20101231T000927_E001.nc'
         swh1 = np.ma.getdata(S.variables['swh_ku'][:])   # this is MLE4
@@ -256,6 +274,37 @@ def  alti_read_l2hrw(mission,filename):
     '''
     import xarray as xr
     S = netCDF4.Dataset(filename, 'r')
+    if mission.lower() in ['ers1','ers2']:
+        #Time at 1-Hz for interpolation of fields available only at 1-Hz
+        time1=np.ma.getdata( S.variables['time'][:] )
+        S_time = np.ma.getdata(S.variables['time_20hz'][:]).flatten()
+        nhf=20
+        n1=len(time1)
+        nall=len(S_time)
+        nlr=nall//nhf
+        nal=nlr*nhf
+
+        S_time=np.ma.getdata( S.variables['time_20hz'][:] )
+        #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
+    
+    
+        height1=np.ma.getdata( S.variables['alt_20hz'][:] )
+        swh1=np.ma.getdata( S.variables['swh_20hz'][:] )
+        tracker1=np.ma.getdata( S.variables['tracker_range_20hz'][:] )
+        range1=np.ma.getdata( S.variables['ocean_range_20hz'][:] )
+        waveforms=np.ma.getdata( S.variables['ku_wf'][:] ).astype(np.float64)
+
+        lat1=np.ma.getdata( S.variables['lat_20hz'][:] )
+        lon1=np.ma.getdata( S.variables['lon_20hz'][:] )
+        off=np.ma.getdata( S.variables['off_nadir_angle_wf_20hz'][:] )
+        off=np.zeros_like(off) # THE OFF NADIR FIELD IN ERS2 IS EMPTY!!!!!
+
+        atmos_corr=np.ma.getdata( S.variables['atmos_corr_sig0'][:] )
+        atmos_corr=np.transpose(np.tile(atmos_corr,(np.shape(S_time)[1],1)))
+        scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz'][:] )
+        timeref= "1981-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+        
     if mission.lower() in ['jason1','jason2','jason3']:
     # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
         time1 = np.ma.getdata(S.variables['time'][:])
@@ -417,10 +466,10 @@ def  alti_read_l2hrw_cci(mission,filename):
 def  processing_choices(mission)  :
     thra=0.1   # threshold for normalized waveform at second range gate of leading edge
     # This second threshold was introduced by FA (to recover previous behavior, set thrb to 0) . 
-    thrb=0.0   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
+    thrb=0 #0.7   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
     minHs=0.2
     maxHs=30
-    noisemin=0
+    noisemin=0 #1
     if mission.lower() == 'envisat':
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 startgate=4                 #First gate to be considered in the retracking window
@@ -463,13 +512,30 @@ def  processing_choices(mission)  :
                 print("Mission not yet supported")
                 sys.exit(0)
                 
-    elif mission.lower() == 'ers2_r_2cm':
-                print("Mission not yet supported")
-                sys.exit(0)
-
+    elif mission.lower() in ['ers2','ers2_r_2cm']:
+                index_originalbins=np.arange(0,63,1) 
+                total_gate_number=64
+                noisegates=np.arange(10,13); #gates used to estimate Thermal Noise (see mail from David Brockley)
+                tau=3.03 #gate width in nanoseconds
+                startgate=8 #First gate to be considered in the retracking window, we choose this because first gates are often corrupted
+                ALEScoeff0=8.90 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
+                                #after the middle of the leading edge
+                ALEScoeff1=2.03 #This is the slope of the WHALES relationship between tolerance of precision and width of the subwaveform   
+                Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
+                                                        #to retrack the same waveform in a different way if fitting performances are not satisfactory  
+                # # AKIMA INTERPOLATION                
+                # waveform_resampled=np.empty(np.size(waveform))*np.nan
+                # y=waveform # 11 May 2015: forced conversion to double                
+                # x=np.arange(1*tau,64*tau+0.01,tau)
+                # x[-1]=round(x[-1],5)
+                # xi=np.arange(1*tau,64*tau+0.01,tau/2)
+                # xi[-1]=round(xi[-1],5)
+                # yi=self.akima_interpolate(x,y,xi)
+                # waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
+                # # END AKIMA INTERPOLATION
+                # waveform = waveform_resampled    
     else:
                 print("unknown mission")
                 sys.exit(0)
-
     return(noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin) 
 

@@ -240,7 +240,6 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin=processing_choices(mission)
             
         index_originalbins=np.arange(0,self.total_gate_number-1,1)        
-                
         # INITIAL DEFINITION OF EXIT VARIABLES
 
         self.Epoch=np.nan
