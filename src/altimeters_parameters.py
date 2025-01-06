@@ -11,6 +11,9 @@ Created on Sat Dec. 21 2024
 # Imports
 #----------------------------------------------------------------
 import numpy as np
+import netCDF4
+from netCDF4 import Dataset
+
 
 ######################  Defines parameters
 def  instrument_parameters(mission)  :
@@ -95,6 +98,16 @@ def  alti_read_l2lr(mission,filename):
         flag1 = np.ma.getdata(S.variables['qual_alt_1hz_swh_ku'][:])
         timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
 
+    if mission.lower() in ['jason3f']:
+    # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
+        swh1 = np.ma.getdata(S['data_01']['ku'].variables['swh_ocean'][:])   # this is MLE4
+        lat1  = np.ma.getdata(S['data_01'].variables['lat'][:])
+        lon1  = np.ma.getdata(S['data_01'].variables['lon'][:])
+        time1 = np.ma.getdata(S['data_01'].variables['time'][:])
+        flag1 = np.ma.getdata(S['data_01']['ku'].variables['swh_ocean_mle3_compression_qual'][:])
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+
     if mission in ['saral', 'altika']:
     # example file='SRL_GPS_2PfP001_0641_20130405_141055_20130405_150113.CNES.nc'
         swh1 = np.ma.getdata(S.variables['swh'][:])   # this is MLE4?
@@ -130,17 +143,26 @@ def  alti_read_l2lr(mission,filename):
         )
     return ds
 
-######################  Generic reading of altimeter data: waveforms and 20Hz parameters
-def  alti_read_l2hrw(mission,filename):
+
+######################  Generic reading of altimeter data: retracked 1Hz parameters
+def  alti_read_l2lr(mission,filename):
     '''
     reads altimeter data (LRM 1Hz only) from file name. 
     The outout is a xarray dataset 
     '''
 
-    import netCDF4
     import xarray as xr
-    from netCDF4 import Dataset
+
     S = netCDF4.Dataset(filename, 'r')
+    if mission.lower() in ['cryosat2']:
+    # example file='CS_LTA__SIR_LRM_2__20101231T000154_20101231T000927_E001.nc'
+        swh1 = np.ma.getdata(S.variables['swh_ku'][:])   # this is MLE4
+        lat1  = np.ma.getdata(S.variables['lat'][:])
+        lon1  = np.ma.getdata(S.variables['lon'][:])
+        time1 = np.ma.getdata(S.variables['time'][:])
+        flag1 = np.ma.getdata(S.variables['qual_alt_1hz_swh_ku'][:])
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
     if mission.lower() in ['jason1','jason2','jason3']:
     # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
         swh1 = np.ma.getdata(S.variables['swh_ku'][:])   # this is MLE4
@@ -150,6 +172,147 @@ def  alti_read_l2hrw(mission,filename):
         flag1 = np.ma.getdata(S.variables['qual_alt_1hz_swh_ku'][:])
         timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
 
+    if mission.lower() in ['jason3f','swot']:
+    # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
+        swh1 = np.ma.getdata(S['data_01']['ku'].variables['swh_ocean'][:])   # this is MLE4
+        lat1  = np.ma.getdata(S['data_01'].variables['latitude'][:])
+        lon1  = np.ma.getdata(S['data_01'].variables['longitude'][:])
+        time1 = np.ma.getdata(S['data_01'].variables['time'][:])
+        flag1 = np.ma.getdata(S['data_01']['ku'].variables['swh_ocean_compression_qual'][:])
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+    if mission in ['saral', 'altika']:
+    # example file='SRL_GPS_2PfP001_0641_20130405_141055_20130405_150113.CNES.nc'
+        swh1 = np.ma.getdata(S.variables['swh'][:])   # this is MLE4?
+        lat1  = np.ma.getdata(S.variables['lat'][:])
+        lon1  = np.ma.getdata(S.variables['lon'][:])
+        time1 = np.ma.getdata(S.variables['time'][:])
+        flag1 = np.ma.getdata(S.variables['qual_alt_1hz_swh'][:])
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+    if mission.lower() in ['cfosat']:
+    # example file='CFO_OP07_SWI_L2_____F_20241221T043021_20241221T054444.nc'
+        S = netCDF4.Dataset(filename, 'r')
+        swh1 = np.ma.getdata(S.variables['nadir_swh_1Hz'][:])
+    #    swh_sgdr2 = np.ma.getdata(S.variables['nadir_swh_native'][:])
+    #S_waveform = np.ma.getdata(S.variables['waveforms_40hz'][:])
+        lat1  = np.ma.getdata(S.variables['lat_nadir_1Hz'][:])
+        lon1  = np.ma.getdata(S.variables['lon_nadir_1Hz'][:])
+#        time1 = np.ma.getdata(S.variables['time_nadir_1Hz'][:])
+        time1 = S.variables['time_nadir_1Hz'][:]
+        flag1 = np.ma.getdata(S.variables['flag_valid_swh_1Hz'][:])
+        timeref= "2009-01-01 00:00:00 0:00"
+    #reference_time = pd.Timestamp("2014-09-05")
+    ds = xr.Dataset(
+        {   "swh_1hz": (["time"], swh1),
+            "lon_1hz": (["time"], lon1),
+            "lat_1hz": (["time"], lat1),
+            "flag_1hz": (["time"], flag1),
+        },
+        coords={
+            "time": time1,
+            "reference_time": timeref,
+        },
+        )
+    return ds
+    
+######################  Generic reading of altimeter data: retracked 1Hz parameters
+def  alti_read_l2lr_cci(mission,filename):
+    '''
+    reads altimeter data (LRM 1Hz only) from file name. 
+    The outout is a xarray dataset 
+    '''
+
+    import xarray as xr
+    S = netCDF4.Dataset(filename, 'r')
+    swh1 = np.ma.getdata(S.variables['swh'][:])   
+    rms1  = np.ma.getdata(S.variables['swh_rms'][:])
+    lat1  = np.ma.getdata(S.variables['lat'][:])
+    lon1  = np.ma.getdata(S.variables['lon'][:])
+    time1 = np.ma.getdata(S.variables['time'][:])
+    flag1 = 3-np.ma.getdata(S.variables['swh_quality_level'][:])
+    timeref= "1981-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+
+    ds = xr.Dataset(
+        {   "swh_1hz": (["time"], swh1),
+            "swh_rms": (["time"], rms1),
+            "lon_1hz": (["time"], lon1),
+            "lat_1hz": (["time"], lat1),
+            "flag_1hz": (["time"], flag1),
+        },
+        coords={
+            "time": time1,
+            "reference_time": timeref,
+        },
+        )
+    return ds
+
+######################  Generic reading of altimeter data: waveforms and 20Hz parameters
+def  alti_read_l2hrw(mission,filename):
+    '''
+    reads altimeter data (LRM 1Hz only) from file name. 
+    The outout is a xarray dataset 
+    '''
+    import xarray as xr
+    S = netCDF4.Dataset(filename, 'r')
+    if mission.lower() in ['jason1','jason2','jason3']:
+    # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
+        time1 = np.ma.getdata(S.variables['time'][:])
+        S_time = np.ma.getdata(S.variables['time_20hz'][:]).flatten()
+        nhf=20
+        n1=len(time1)
+        nall=len(S_time)
+        nlr=nall//nhf
+        nal=nlr*nhf
+        swh1 = np.ma.getdata(S.variables['swh_20hz_ku'][:])  # this is MLE4
+        lat1= np.ma.getdata(S.variables['lat_20hz'][:])
+#,np.shape(S_time),np.shape(S_swh),np.shape(S_lat))
+        #swh1 = np.reshape(S_swh[0:nal], (nlr,nhf))
+        #lat1 = np.reshape(S_lat[0:nal], (nlr,nhf))
+        lon1= np.ma.getdata(S.variables['lon_20hz'][:])
+        #lon1 =np.reshape(S_lon[0:nal], (nlr,nhf))
+
+                
+        waveforms = np.ma.getdata(S.variables['waveforms_20hz_ku'][:])
+        #waveforms = np.reshape(
+        #S_waveform[0:nal,:], (nlr, nhf, np.shape(S_waveform)[1]))
+
+        flag1 = np.ma.getdata(S.variables['qual_alt_1hz_swh_ku'][:])
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+    if mission.lower() in ['jason3f','swot']:
+        # AVISO SGDR version F
+        time1 = np.ma.getdata(S['data_01'].variables['time'][:])
+        S_time = np.ma.getdata(S['data_20'].variables['time'][:])
+        nhf=20
+        n1=len(time1)
+        nall=len(S_time)
+        nlr=nall//nhf
+        nal=nlr*nhf
+        
+        #print('time:',time1[0],'##',S_time[0:20]-time1[0])
+        #print('time:',time1[nlr-1],'##',S_time[(nlr-1)*nhf:nlr*nhf]-time1[nlr-1])
+        S_time = np.reshape(S_time[0:nal], (nlr,nhf))   # warning this reshaping throws away the last few 20 Hz sample 
+        #print('time shape:',n1,S_time.shape)
+       
+        S_swh = np.ma.getdata(S['data_20']['ku'].variables['swh_ocean'][:]) # this is MLE4
+        swh1 = np.reshape(S_swh[0:nal], (nlr,nhf))
+
+        S_lat= np.ma.getdata(S['data_20'].variables['latitude'][:])
+        lat1 = np.reshape(S_lat[0:nal], (nlr,nhf))
+
+        S_lon= np.ma.getdata(S['data_20'].variables['longitude'][:])
+        lon1 =np.reshape(S_lon[0:nal], (nlr,nhf))
+        
+        
+        S_waveform = np.ma.getdata(
+        S['data_20']['ku'].variables['power_waveform'][:])
+        waveforms = np.reshape(
+        S_waveform[0:nal,:], (nlr, nhf, np.shape(S_waveform)[1]))
+        
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
     if mission in ['saral', 'altika']:
     # example file='SRL_GPS_2PfP001_0641_20130405_141055_20130405_150113.CNES.nc'
         swh2 = np.ma.getdata(S.variables['swh_40hz'][:])   # this is MLE4?
@@ -157,8 +320,7 @@ def  alti_read_l2hrw(mission,filename):
         lon2  = np.ma.getdata(S.variables['lon_40hz'][:])
         time2 = np.ma.getdata(S.variables['time_40hz'][:])
         time1 = np.ma.getdata(S.variables['time'][:])
-        off1 = np.ma.getdata(S.variables['off_nadir_angle_pf'][:])
-        off2 = np.transpose(np.tile(off1, (np.shape(time2)[1], 1)))
+        off2 = np.ma.getdata(S.variables['off_nadir_angle_pf'][:])
         waveforms = np.ma.getdata(S.variables['waveforms_40hz'][:])
 
         timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
@@ -177,27 +339,88 @@ def  alti_read_l2hrw(mission,filename):
         timeref= "2009-01-01 00:00:00 0:00"
     #reference_time = pd.Timestamp("2014-09-05")
     ds = xr.Dataset(
-        {   "swh2d": (["time","meas_ind"], swh2),
-            "lon2d": (["time","meas_ind"], lon2),
-            "lat2d": (["time","meas_ind"], lat2),
-            "off2d": (["time","meas_ind"], off2),
+        {   "swh2d": (["time","meas_ind"], swh1),
+            "lon2d": (["time","meas_ind"], lon1),
+            "lat2d": (["time","meas_ind"], lat1),
             "waveforms": (["time","meas_ind","wvf_ind"], waveforms),
         },
         coords={
-            "time": time1,
+            "time": time1[0:nlr],
+            "reference_time": timeref,
+        },
+        )
+    return ds
+    
+    ######################  Generic reading of altimeter data: waveforms and 20Hz parameters
+def  alti_read_l2hrw_cci(mission,filename):
+    '''
+    reads altimeter data (LRM 1Hz only) from file name. 
+    The outout is a xarray dataset 
+    '''
+
+    S = netCDF4.Dataset(filename, 'r')
+    if mission.lower() in ['jason1','jason2','jason3']:
+    # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
+        swh1 = np.ma.getdata(S.variables['swh_ku'][:])   # this is MLE4
+        lat1  = np.ma.getdata(S.variables['lat'][:])
+        lon1  = np.ma.getdata(S.variables['lon'][:])
+        time1 = np.ma.getdata(S.variables['time'][:])
+        flag1 = np.ma.getdata(S.variables['qual_alt_1hz_swh_ku'][:])
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+    if mission.lower() in ['jason3f']:
+        # AVISO SGDR version F
+        S_time = np.ma.getdata(S.variables['time_20hz'][:])
+        nhf=20
+        nall=len(S_time)
+        nlr=nall//nhf
+        nal=nlr*nhf
+        
+        #print('time:',time1[0],'##',S_time[0:20]-time1[0])
+        #print('time:',time1[nlr-1],'##',S_time[(nlr-1)*nhf:nlr*nhf]-time1[nlr-1])
+        S_time = np.reshape(S_time[0:nal], (nlr,nhf))   # warning this reshaping throws away the last few 20 Hz sample 
+        time1 = np.mean(S_time,axis=1)
+        
+        S_swh = np.ma.getdata(S.variables['swh_WHALES_20hz'][:]) # this is MLE4
+        swh1 = np.reshape(S_swh[0:nal], (nlr,nhf))
+
+        S_lat= np.ma.getdata(S.variables['lat_20hz'][:])
+        lat1 = np.reshape(S_lat[0:nal], (nlr,nhf))
+
+        S_lon= np.ma.getdata(S.variables['lon_20hz'][:])
+        lon1 =np.reshape(S_lon[0:nal], (nlr,nhf))
+        
+        
+#        S_waveform = np.ma.getdata(
+#        S['data_20']['ku'].variables['power_waveform'][:])
+#        waveforms = np.reshape(
+#        S_waveform[0:nal,:], (nlr, nhf, np.shape(S_waveform)[1]))
+        
+        timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
+
+
+    ds = xr.Dataset(
+        {   "swh2d": (["time","meas_ind"], swh1),
+            "lon2d": (["time","meas_ind"], lon1),
+            "lat2d": (["time","meas_ind"], lat1),
+ #           "waveforms": (["time","meas_ind","wvf_ind"], waveforms),
+        },
+        coords={
+            "time": time1[0:nlr],
             "reference_time": timeref,
         },
         )
     return ds
 
+
 ################################################################################################################    
 def  processing_choices(mission)  :
     thra=0.1   # threshold for normalized waveform at second range gate of leading edge
     # This second threshold was introduced by FA (to recover previous behavior, set thrb to 0) . 
-    thrb=0.7   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
+    thrb=0.0   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
     minHs=0.2
     maxHs=30
-    noisemin=1
+    noisemin=0
     if mission.lower() == 'envisat':
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 startgate=4                 #First gate to be considered in the retracking window
@@ -217,7 +440,7 @@ def  processing_choices(mission)  :
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory              
 
    
-    elif mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3' or mission.lower() == 'swot': 
+    elif mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3' or mission.lower() == 'jason3f' or mission.lower() == 'jason3f2' or mission.lower() == 'swot': 
                 noisegates=np.arange(0,6); #gates used to estimate Thermal Noise
                 startgate=1 #First gate to be considered in the retracking window
                 ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
