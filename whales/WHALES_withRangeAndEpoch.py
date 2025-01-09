@@ -411,15 +411,19 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         edgestart=1
         edgeend=1
         
-        if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' :
+        if mission.lower() == 'saral' or mission.lower() == 'saral_igdr'  :
             wv0=D[index_originalbins]
             kernel_size = 3
             kernel = np.ones(kernel_size) / kernel_size
             wv = np.convolve(wv0, kernel, mode='same')
+        elif mission.lower() == 'ers2_r_2cm' :
+            wv0=D[index_originalbins]
+            kernel_size = 5
+            kernel = np.ones(kernel_size) / kernel_size
+            wv = np.convolve(wv0, kernel, mode='same')            
         else:
             wv=D[index_originalbins] # old version of 'wv'
 
-        
         Dwv=np.diff(wv)
         i = 4 #Gate where the search starts
         
@@ -445,7 +449,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 i=i+1
         
 
-        if mission.lower() == 'ers1':        
+        if mission.lower() == 'ers1' or mission.lower() == 'ers2_r_2cm':        
             gate2=index_originalbins[edgeend+2] #we extend the end of the leading edge by one further gate due to low leading edge sampling in ers
             gate1=index_originalbins[edgestart]
         else:  
@@ -498,7 +502,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
                 if exitflag_yang==0: 
-                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' :
+                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' or mission.lower() == 'ers2_r_2cm':
                         if growingdue < 6 : #In the special case of Saral and ERS, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
                                             #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time
                             growingdue=growingdue+2
@@ -509,9 +513,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 else: #else then we can stop the while cycle
                         break
                     
-
+                        
             self.D=D  #D is the normalised original waveform
-    
                     
                       
             del(growingdue)    
@@ -535,28 +538,42 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                              
              # STEP 5,3  WHALES EQUATION TO SET SECOND-PASS WINDOW: depending on the first estimation of SWH, a new width of the subwaveform is chosen, similarly 
                          #what is done in the ALES retracker (see Passaro et al. 2014 for the methodology). "stopgate" is the limit of the new subwaveform
-             
+
+            
+
             SWH_yang=np.real(SWH_yang)
+
             if SWH_yang<0:
                 SWH_yang=0 # THE WHALES ALGORITHM IS DERIVED ONLY FOR POSITIVE SSB
-            if SWH_yang<15:
+            if SWH_yang<15: #Estimations of high SWH in the ERS are too noisy, so we extend the retracking window for SWH_yang>10m instead of 15m
                 gateafterLE=np.ceil(ALEScoeff0+ALEScoeff1*np.abs(SWH_yang))                  
                 stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE            
-            else: #we consider 15 m as the maximum possible SWH value
+            else: #we consider 15 m as the maximum possible SWH value 
                 gateafterLE=np.ceil(ALEScoeff0+ALEScoeff1*15)                   
                 stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE
-            if stopgate<=total_gate_number: #if we need more than the actual number of gates, we use the full waveform
-                pass
+            if interpolation_factor > 1 :
+                if stopgate<=total_gate_number/interpolation_factor-1*interpolation_factor: #if we need more than the actual number of gates, we use the full waveform
+                    pass
+                else:
+                    stopgate=total_gate_number/interpolation_factor-1*interpolation_factor #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"                
             else:
-                stopgate=total_gate_number-1 #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"
-             
+                if stopgate<=total_gate_number: #if we need more than the actual number of gates, we use the full waveform
+                    pass
+                else:
+                    stopgate=total_gate_number-1 #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"                    
+
+
+
+
+
             if xdata[-1]<stopgate*tau : #if the computed stopgate is bigger than the actual length of the vector
                                         #(can happen for very high SWH), then stopgate will be the end of the waveform
                 stopgate=np.size(xdata)-1
-            else: # FIND ON THE OVERSAMPLED WAVEFORM THE POSITION CORRESPONDING TO THE COMPUTED STOPGATE
-                stopgate=np.nonzero(xdata==stopgate*tau)[0]-1; #-1 because the first element of xdata is 0 and not 3.125
-            
-            
+            else: # FIND ON THE OVERSAMPLED WAVEFORM THE POSITION CORRESPONDING TO THE COMPUTED STOPGATE                        
+                stopgate=np.nonzero(xdata==stopgate*tau)[0]-1 #-1 because the first element of xdata is 0 and not 3.125
+
+
+
             #we don't want to stop before the end of the
             #leading edge
             if stopgate>=gate2:
@@ -577,7 +594,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             exitflag_LESfive=0
             Err_LESfive=1  
             tol_Err_LESfive=Err_tolerance_vector
-                    
+                
             if Err_yang<1: #To make it faster: If the first pass was not able to retrack the leading edge, it's useless to go on
                     if Err_LESfive>tol_Err_LESfive:
                         growingdue=0 #variation of the number of gates considered
@@ -598,18 +615,30 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                             weights_select[index_nanweights]=1 #Transform the NaNs of the weight vector in ones
                             index_startweight=np.where(self.weights_flag[select_weights,:]==1)[0] #identify the start and the end of the leading edge in the weight vector
                             index_endweight=np.where(self.weights_flag[select_weights,:]==2)[0]
-                            index_startweight=index_startweight[0] #convert array to index
-                            index_endweight=index_endweight[0] #convert array to index
+                            index_startweight=index_startweight[0]*interpolation_factor #convert array to index
+                            index_endweight=index_endweight[0]*interpolation_factor #convert array to index
+
+                            #Consider the possibility that the waveform is being oversampled and therefore the weights matrix has also to be oversampled
+                            # Get the original number of samples
+                            original_length = weights_select.shape[0]
+
+                            # Create a new index for the interpolated data
+                            original_indices = np.linspace(0, original_length - 1, num=original_length)
+                            new_indices = np.linspace(0, original_length - 1, num=total_gate_number)
+
+                            # Perform 1D interpolation
+                            weights_select = np.interp(new_indices, original_indices, weights_select)
+                         
+
                             
                                 #Now prepare a weight vector considering the start of the leading edge in this waveform
                             this_weights=np.ones(np.shape(xdata))
                             if gate1+index_endweight-index_startweight<total_gate_number :
                                 this_weights[gate1:gate1+(index_endweight-index_startweight)]=weights_select[index_startweight:index_endweight]
-                                this_weights=1./this_weights
+                                this_weights=1./this_weights                  
                             
                             # Launche the second retracking process
                             x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NMbrown_Sigma( xdata[startgate:stopgate+growingdue+1] , D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.hsat,np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag)
-                            
                                      
                             self.Wt_all_LESfive[startgate:stopgate+growingdue+1]=Wt_LESfive  #This is the fitted subwaveform
         
@@ -622,13 +651,12 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                 
                                 
                             if exitflag_LESfive==0 and tol_Err_LESfive==Err_tolerance_vector : #if convergence is not reached, we might need more gates (growingdue+1), otherwise we prepare to terminate the while cycle
-        
                                 growingdue=growingdue+2
 
                                     
                                     
                             else: # then we can stop the while cycle
-                                growingdue=total_gate_number-gate2;
+                                growingdue=total_gate_number-gate2
                                 
                                 
                                 
@@ -640,12 +668,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
                 
-                
             if np.isnan(x1_LESfive[2])==0 :
                 Epoch_LESfive,Tau_LESfive,Sigma_LESfive,Au_LESfive=self.Conversion_NMbrown(x1_LESfive,mission)
                 SWH_LESfive=SWH
     
                 Sigma0_LESfive=10*np.log10(Au_LESfive*normalize_factor)  #db
+
+
+
             else :
                 Epoch_LESfive=np.nan 
                 Tau_LESfive=np.nan
@@ -653,10 +683,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 Au_LESfive=np.nan
                 Sigma0_LESfive=np.nan 
                 Sigma_LESfive=np.nan
+                  
             
-            
-            
-
 
         # STEP 5.5 FINAL OUTPUT
 

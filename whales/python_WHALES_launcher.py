@@ -42,13 +42,13 @@ saving_directory= ''
 
 
 ##
-saving_name='try_ers2'
+saving_name='try_ers2_stormmarcello'
 
 # ERS1 test file
 #filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
 
 # ERS2 test file
-filename='test_files/E2_REAP_ERS_ALT_2S_20000718T222234_20000718T235223_RP01.NC'
+filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
 
 # ENVISAT test file
 #filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
@@ -386,7 +386,7 @@ swh_WHALES_instr_corr=np.empty(np.shape(S_time))*np.nan
 
 
 for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.shape(S_time)[0],1)
-#for index_waveforms_row in np.arange(2000,2250,1):  #np.arange(0,np.shape(S_time)[0],1)    
+#for index_waveforms_row in np.arange(2235,2236,1):  #np.arange(0,np.shape(S_time)[0],1)    
     
     #print index_waveforms_row    
     
