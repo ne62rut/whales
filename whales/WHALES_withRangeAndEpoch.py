@@ -416,7 +416,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             kernel_size = 3
             kernel = np.ones(kernel_size) / kernel_size
             wv = np.convolve(wv0, kernel, mode='same')
-        elif mission.lower() == 'ers2_r_2cm' :
+        elif mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1' :
             wv0=D[index_originalbins]
             kernel_size = 5
             kernel = np.ones(kernel_size) / kernel_size
@@ -502,7 +502,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 
                 if exitflag_yang==0: 
-                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' or mission.lower() == 'ers2_r_2cm':
+                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' or mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1':
                         if growingdue < 6 : #In the special case of Saral and ERS, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
                                             #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time
                             growingdue=growingdue+2
