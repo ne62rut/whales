@@ -42,13 +42,13 @@ saving_directory= ''
 
 
 ##
-saving_name='try_ers1'
+saving_name='try_ers2'
 
 # ERS1 test file
-filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
+#filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
 
 # ERS2 test file
-#filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
+filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
 
 # ENVISAT test file
 #filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
@@ -60,7 +60,7 @@ filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
 #filename='test_files/CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
 
 # Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm, ers2, ers1
-mission='ers1'
+mission='ers2'
 
 
 cal2='on'
@@ -173,6 +173,9 @@ if mission in ['jason1','jason2','jason3']:
     S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz_ku'][:] )    
 
 elif mission in ['ers2','ers1']:
+
+    S_qual_wf_not_tracking=np.ma.getdata( S.variables['qual_wf_not_tracking_20hz'][:] )
+    #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
 
     S_time=np.ma.getdata( S.variables['time_20hz'][:] )
     #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
@@ -391,6 +394,11 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
     #print index_waveforms_row    
     
     for index_waveforms_col in np.arange(0,np.shape(S_time)[1],1):
+
+        if mission=='ers2' or mission=='ers1':
+            if S_qual_wf_not_tracking[index_waveforms_row,index_waveforms_col]==1:
+                print('Periodic peaky waveform, excluded using qual_wf_not_tracking')
+                continue
 
         #print index_waveforms_col
 
