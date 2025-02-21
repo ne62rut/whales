@@ -42,13 +42,16 @@ saving_directory= ''
 
 
 ##
-saving_name='try_ers2'
+saving_name='try_s6_lrm'
 
 # ERS1 test file
 #filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
 
 # ERS2 test file
-filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
+#filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
+
+# Sentinel6a LRM test file
+filename='test_files/S6A_P4_1B_LR______20210316T155337_20210316T164950_20230404T033056_3373_013_001_127_EUM__REP_NT_F08.SEN6.measurement.nc'
 
 # ENVISAT test file
 #filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
@@ -60,7 +63,7 @@ filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
 #filename='test_files/CS_OFFL_SIR_LRM_1B_20200101T110339_20200101T113633_D001.nc'
 
 # Mission: choose between envisat, jason1, jason2, jason3, saral, cs2_lrm, ers2, ers1
-mission='ers2'
+mission='sentinel6_lrm'
 
 
 cal2='on'
@@ -104,6 +107,9 @@ elif mission in ['cs2_lrm'] :
 elif mission in ['ers2','ers1'] :
     my_path_instr_corr_SWH='instr_corr/SWHinstrcorr_WHALES_jason3SGDRd.mat' 
     my_path_weights='weights/weights_ers2.mat'    
+elif mission in ['sentinel6_lrm'] :
+    my_path_instr_corr_SWH='' 
+    my_path_weights='weights/weights_s6_lrm.mat' 
 
         
   
@@ -170,7 +176,46 @@ if mission in ['jason1','jason2','jason3']:
     #This field is at 1-Hz, so it has to be reshaped
     S_atmos_corr=np.transpose(np.tile(S_atmos_corr,(np.shape(S_time)[1],1)))
 
-    S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz_ku'][:] )    
+    S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz_ku'][:] ) 
+
+elif mission in['sentinel6_lrm'] :
+
+    S_group=S.groups['data_20']
+    S_group=S_group['ku']
+    #print(S_group.variables)
+    S_time=np.ma.getdata(S_group.variables['time'][:])
+    S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
+    #print np.shape(S_time)
+    S_height=np.ma.getdata(S_group.variables['altitude'][:])
+    S_height=np.reshape(S_height,(np.shape(S_time)[0],1) )
+
+    #S_swh=np.ma.getdata(S_group.variables['swh_ocean_20_ku'][:])
+
+    S_tracker=np.ma.getdata(S_group.variables['tracker_range_calibrated'][:])
+    S_tracker=np.reshape(S_tracker,(np.shape(S_time)[0],1) )
+
+    #S_range=np.ma.getdata(S.variables['range_ku_l1bs_echo_sar_ku'][:])
+
+    S_waveform_scale_factor=np.ma.getdata(S_group.variables['waveform_scale_factor'][:])
+    S_waveform_scale_factor=np.reshape(S_waveform_scale_factor,(np.shape(S_time)[0],1) )
+
+    S_waveform=np.ma.getdata(S_group.variables['power_waveform'][:])
+
+    S_lat=np.ma.getdata(S_group.variables['latitude'][:])
+    S_lat=np.reshape(S_lat,(np.shape(S_time)[0],1) )
+
+    S_lon=np.ma.getdata(S_group.variables['longitude'][:])
+    S_lon=np.reshape(S_lon,(np.shape(S_time)[0],1) )
+
+    sig0_scaling_factor=np.ma.getdata(S_group.variables['sig0_scaling_factor'][:])
+    sig0_scaling_factor=np.reshape(sig0_scaling_factor,(np.shape(S_time)[0],1) )
+
+    ptr_main_lobe_width=np.ma.getdata(S_group.variables['ptr_main_lobe_width'][:])
+    ptr_main_lobe_width=np.reshape(ptr_main_lobe_width,(np.shape(S_time)[0],1) )
+
+    S_landmask=np.ones((len(S_tracker),1))*0 
+ 
+
 
 elif mission in ['ers2','ers1']:
 
@@ -488,6 +533,8 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
 
         if mission in ['envisat','envisat_over']:
             sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col] -33.1133
+        elif mission in ['sentinel6_lrm']:
+            sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+sig0_scaling_factor[index_waveforms_row,index_waveforms_col]+ 10 * np.log10(S_waveform_scale_factor[index_waveforms_row,index_waveforms_col])
         elif mission in ['ers2']: #The constant bias of 103.92 has been derived from the personal communication of David Brockley and it is also mentioned in the SGDR user manual for REAPER
             sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col] -103.92
         elif mission in ['ers1']: #The constant bias  has been derived from the personal communication of David Brockley and it is also mentioned in the SGDR user manual for REAPER
