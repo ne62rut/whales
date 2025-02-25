@@ -112,7 +112,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             tau=3.125 #gate spacing in ns
             Theta=1.1992 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
             SigmaP=0.513*tau  
-        if mission.lower() == 'sentinel6' :           
+        if mission.lower() == 'sentinel6_lrm' :           
             tau=2.532
             Theta=1.33 *np.pi/180
             SigmaP=0.513*tau#2.147483648*tau/2                         
@@ -182,7 +182,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         if mission.lower() == 'ers2_r' or mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1': 
             tau=3.03
             nominal_tracking_gate=33
-        if mission.lower() == 'sentinel6':
+        if mission.lower() == 'sentinel6_lrm':
             tau=2.532 #gate spacing in ns
             nominal_tracking_gate=128               
         if mission.lower() == 'cs2_lrm':
@@ -368,7 +368,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 # END AKIMA INTERPOLATION
                 waveform = waveform_resampled   
         
-        elif mission.lower() == 'sentinel6':   
+        elif mission.lower() == 'sentinel6_lrm':   
                 interpolation_factor=2          #This is the interpolation factor that will be applied on the original waveform
                 index_originalbins=np.arange(0,256*interpolation_factor,interpolation_factor) 
                 total_gate_number=256*interpolation_factor
@@ -455,7 +455,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             kernel_size = 5
             kernel = np.ones(kernel_size) / kernel_size
             wv = np.convolve(wv0, kernel, mode='same')    
-        elif mission.lower() == 'sentinel6' :
+        elif mission.lower() == 'sentinel6_lrm' :
             wv0=D[index_originalbins]
             kernel_size = 3
             kernel = np.ones(kernel_size) / kernel_size
@@ -491,7 +491,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         if mission.lower() == 'ers1' or mission.lower() == 'ers2_r_2cm':        
             gate2=index_originalbins[edgeend+2] #we extend the end of the leading edge by one further gate due to low leading edge sampling in ers
             gate1=index_originalbins[edgestart]
-        elif mission.lower() == 'sentinel6':        
+        elif mission.lower() == 'sentinel6_lrm':        
             gate2=index_originalbins[edgeend+2] #we extend the end of the leading edge by one further gate due to increased range resolution in S6 lrm
             gate1=index_originalbins[edgestart]            
         else:  
@@ -553,7 +553,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                     else:
                         growingdue=growingdue+2
                     
-                    if mission.lower() == 'sentinel6':
+                    if mission.lower() == 'sentinel6_lrm':
                         if growingdue < 6 : #In the special case of sentinel6, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
                                             #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time. Note that in WHALES for Ifremer
                                             #the same is also done for saral

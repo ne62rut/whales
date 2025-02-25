@@ -68,7 +68,7 @@ mission='sentinel6_lrm'
 
 cal2='on'
 
-add_instr_corr_SWH = 'yes'
+add_instr_corr_SWH = 'no'
 import_weights= 'yes'
 
 
@@ -214,6 +214,9 @@ elif mission in['sentinel6_lrm'] :
     ptr_main_lobe_width=np.reshape(ptr_main_lobe_width,(np.shape(S_time)[0],1) )
 
     S_landmask=np.ones((len(S_tracker),1))*0 
+
+    S_offnadir=np.ma.getdata(S_group.variables['off_nadir_roll_angle_pf'][:])
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
  
 
 
@@ -472,6 +475,9 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
             elif mission=='envisat':
                 ' waveform '
                 input['waveform'] = S_waveform[index_waveforms_row,:]  
+            elif mission=='sentinel6_lrm':
+                ' waveform '
+                input['waveform'] = S_waveform[index_waveforms_row,:]                  
             elif mission=='cs2_lrm':
                 ' waveform '
                 input['waveform'] = S_waveform[index_waveforms_row,:]
@@ -504,7 +510,9 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0],1):  #np.arange(0,np.
         elif mission=='ers2':
             input['mission'] = 'ers2_r_2cm'
         elif mission=='ers1':
-            input['mission'] = 'ers1'            
+            input['mission'] = 'ers1'    
+        elif mission=='sentinel6_lrm':
+            input['mission'] = 'sentinel6_lrm'                     
 
         ' off nadir angle in degree ' 
         input['xi'] =  S_offnadir[index_waveforms_row,index_waveforms_col]
