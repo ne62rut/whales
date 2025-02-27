@@ -42,7 +42,7 @@ saving_directory= ''
 
 
 ##
-saving_name='try_s6_lrm'
+saving_name='try_s6_lrm_eunice'
 
 # ERS1 test file
 #filename='test_files/E1_REAP_ERS_ALT_2S_19960115T154521_19960115T172425_RP01.NC'
@@ -51,7 +51,7 @@ saving_name='try_s6_lrm'
 #filename='test_files/E2_REAP_ERS_ALT_2S_19990318T080703_19990318T094838_RP01.NC'
 
 # Sentinel6a LRM test file
-filename='test_files/S6A_P4_1B_LR______20210316T155337_20210316T164950_20230404T033056_3373_013_001_127_EUM__REP_NT_F08.SEN6.measurement.nc'
+filename='test_files/S6A_P4_1B_LR______20220223T111610_20220223T121223_20230310T040333_3373_047_172_086_EUM__REP_NT_F08.SEN6.measurement.nc'
 
 # ENVISAT test file
 #filename='test_files/ENV_RA_2_MWS____20080318T123944_20080318T133001_20170817T134250_3017_067_0019____PAC_R_NT_003.nc'
