@@ -270,7 +270,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
             
 # STEP 2: WAVEFORM NORMALISATION
-        igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here
+        igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here   # 5 should be increased for ERS ... also need to exclue the noisegates ... 
         normalize_factor=1.3*np.nanmedian(C[igoodsample]);        
         D=C/normalize_factor
         self.scale=estimated_noise
@@ -482,6 +482,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                             if self.weights_type == 0:
                                  this_weights=np.zeros(len(waveform))+1.0
                             elif self.weights_type == 1:
+                                 this_weights=np.zeros(len(waveform))+self.weight_outsub
                                  weigths_SWH_vector=np.arange(0,10.5,0.5)
                                  select_weights=np.argmin(  np.abs(np.abs(SWH_yang)-weigths_SWH_vector)  )
                                  index_startweight=np.where(self.weights_flag[select_weights,:]==1)[0] #identify the start and the end of the leading edge in the weight vector
@@ -493,6 +494,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  weights_select=self.weights[select_weights,:]
                                  index_nanweights=np.where(np.isnan(weights_select))[0]
                                  weights_select[index_nanweights]=self.weight_outsub #Transform the NaNs of the weight vector in ones
+                            
                                  gatemax=np.min([self.total_gate_number-1,gate1+index_endweight-index_startweight])
                                  this_weights[gate1:gatemax]=weights_select[index_startweight:index_startweight+gatemax-gate1]
 
@@ -534,7 +536,6 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  this_weights[gate1:gate2]=wbrown[gate1:gate2]
                             
                             this_weights=1./this_weights
-                            
                             # Launch the second retracking process
                             self.gate3=stopgate+growingdue+1
                             if self.costfunction == 'LS':

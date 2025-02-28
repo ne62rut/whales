@@ -17,9 +17,6 @@ def import_weights_pkl(pickle_file_path):
             SWH_values = pickle.load(file)
             residual_std = pickle.load(file)
             flag_edges = pickle.load(file)
-            #print('examples :',SWH_values[0:10],np.shape(flag_edges),'WHERE:',np.where(flag_edges[:,10]==1)[0])
-            print('FLAGSS:',residual_std[0,:])
-            print('FLAGSS:',flag_edges[0,:])
             return SWH_values, np.transpose(residual_std), np.transpose(flag_edges)
     except FileNotFoundError:
         print(f"File {pickle_file_path} not found.")

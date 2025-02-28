@@ -162,6 +162,8 @@ class Retracker_MP:
             self.ominal_tracking_gate = config['nominal_tracking_gate']
         if 'weights_type' in config:
             self.weights_type = config['weights_type']
+        if 'weight_outsub' in config:
+            self.weight_outsub = config['weight_outsub']
         if 'costfunction' in config:
             self.costfunction = config['costfunction']
         if 'smooth' in config:

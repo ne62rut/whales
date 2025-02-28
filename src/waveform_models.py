@@ -93,7 +93,7 @@ def  waveform_brown_ML(incognita,data)  :
      *   (  1+scipy.special.erf( ((xdata-incognita[0])-c_xi*incognita[1]**2)/((np.sqrt(2)*incognita[1]))  ) ) \
      )
      ratio = np.divide(ydata+1.e-5,fff+1.e-5) 
-     cy= ( ratio - np.log(ratio)-1.).sum()
+     cy= ( ratio - np.log(ratio)).sum()
      
      return cy
 

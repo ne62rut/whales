@@ -372,7 +372,7 @@ elif mission in ['cs2_lrm']:
     # S_range=np.ma.getdata( S.variables['range_ocean_20_ku'][:] )
     # S_range=np.reshape(S_range,(np.shape(S_time)[0],1) )
 
-    S_waveform = np.ma.getdata(S.variables['pwr_waveform_20_ku'][:])
+    S_waveform = np.ma.getdata(S.variables['pwr_waveform_20_ku'][:]).astype(np.float64)
     # S_waveform=np.reshape(S_waveform,(np.shape(S_time)[0],1) )
 
     S_lat = np.ma.getdata(S.variables['lat_20_ku'][:])
