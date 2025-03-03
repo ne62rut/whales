@@ -22,7 +22,8 @@ def  instrument_parameters(mission)  :
     SigmaP=0.513*tau
     nump=90
     total_gate_number=104
-    nominal_tracking_gate=31     
+    nominal_tracking_gate=31 
+    interpolation_factor=1    
                 
 # Mission-dependent parameters and files to be loaded
     if mission.lower() in ['ers2','ers2_r','ers2_r_2cm']:           
@@ -31,6 +32,11 @@ def  instrument_parameters(mission)  :
         SigmaP=0.513*tau    
         nump=50
         total_gate_number=64
+        
+        interpolation_factor=2
+        index_originalbins=np.arange(0,63*interpolation_factor,interpolation_factor)
+        total_gate_number=64*interpolation_factor
+        
     if mission in ['envisat']:
         Theta=1.35 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
         SigmaP=0.53*tau #from Gomez Enri 2006. Otherwise use:%1.6562; %ns =0.53*3.125ns
@@ -42,6 +48,13 @@ def  instrument_parameters(mission)  :
         Theta=1.29 *np.pi/180
     elif mission in ['jason3', 'jason3f','jason3f2','swot']:
         Theta=1.29 *np.pi/180
+    elif mission in ['sentinel6_lrm']:
+        tau=2.532              
+        #note on the gate width: The instrument samples the waveforms with a 395 MHz clock, providing a nominal_sampling = c / 395e6 / 2 = ~0.379m (with c=speed of light). 
+        Theta=1.33 *np.pi/180
+        total_gate_number=256
+        nominal_tracking_gate=128   
+                   
     elif mission.lower() in ['altika', 'saral', 'saral_igdr']:
         tau=3.125*320/480      
         Theta=0.605 *np.pi/180
@@ -321,7 +334,7 @@ def  alti_read_l2hrw(mission,filename):
 
         S_lon= np.ma.getdata(S['data_20'].variables['longitude'][:])
         lon1 =np.reshape(S_lon[0:nal], (nlr,nhf))
-        
+        flag1 = lon1*0+np.nan
         
         S_waveform = np.ma.getdata(
         S['data_20']['ku'].variables['power_waveform'][:])
@@ -384,7 +397,7 @@ def  alti_read_l2hrw_cci(mission,filename):
     print('filename CCI;',filename)
     S = netCDF4.Dataset(filename, 'r')
     
-    if mission.lower() in ['jason1','jason2','jason3','saral']:
+    if mission.lower() in ['jason1','jason2','jason3','saral','swot']:
     # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
         swh1 = np.ma.getdata(S.variables['swh_WHALES_20hz'][:])   # this is MLE4
         lat1  = np.ma.getdata(S.variables['lat_20hz'][:])
@@ -440,7 +453,7 @@ def  alti_read_l2hrw_ccidebug(mission,filename):
     import xarray as xr
     print('filename;',filename)
     S = netCDF4.Dataset(filename, 'r')
-    if mission.lower() in ['jason1','jason2','jason3','saral']:
+    if mission.lower() in ['jason1','jason2','jason3','saral','swot']:
         swh1 = np.ma.getdata(S.variables['swh_WHALES_20hz'][:])   # this is MLE4
         lat1  = np.ma.getdata(S.variables['lat_20hz'][:])
         lon1  = np.ma.getdata(S.variables['lon_20hz'][:])
@@ -524,6 +537,7 @@ def  processing_choices(mission)  :
     minHs=0.2
     maxHs=30
     noisemin=0 #1
+    interpolation_factor=1
     if mission.lower() == 'envisat':
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 startgate=4                 #First gate to be considered in the retracking window
@@ -554,6 +568,19 @@ def  processing_choices(mission)  :
                 Err_tolerance_vector=0.3; #Tolerance on the (normalised) fitting error of the waveform. It can be used, for example,
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory
 
+    elif mission.lower() == 'sentinel6_lrm':   
+                interpolation_factor=2          #This is the interpolation factor that will be applied on the original waveform
+                index_originalbins=np.arange(0,256*interpolation_factor,interpolation_factor) 
+                total_gate_number=256*interpolation_factor
+                noisegates=np.arange(4*interpolation_factor,10*interpolation_factor);
+                #if you have a sampling rate of 395e6 then your range bins are 1/395e6 spaced from each other in time, i.e. 2.531 ns
+                startgate=4*interpolation_factor #First gate to be considered in the retracking window 
+
+                ALEScoeff0=0.3784
+                ALEScoeff1=3.6347    
+                Err_tolerance_vector=0.3;
+
+
     elif mission.lower() == 'cs2_lrm' :
                 #noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 noisegates=np.arange(6,12); #gates used to estimate Thermal Noise
@@ -577,8 +604,8 @@ def  processing_choices(mission)  :
                 
                 index_originalbins=np.arange(0,63,1) 
                 total_gate_number=64
-                noisegates=np.arange(10,13); #gates used to estimate Thermal Noise (see mail from David Brockley)
-                tau=3.03 #gate width in nanoseconds
+                noisegates=np.arange(10*interpolation_factor,13*interpolation_factor); #gates used to estimate Thermal Noise (see mail from David 
+                #noisegates=np.arange(10,13); #gates used to estimate Thermal Noise (see mail from David Brockley)
                 startgate=8 #First gate to be considered in the retracking window, we choose this because first gates are often corrupted
                 ALEScoeff0=8.90 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
@@ -599,5 +626,5 @@ def  processing_choices(mission)  :
     else:
                 print("unknown mission")
                 sys.exit(0)
-    return(noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin) 
+    return(noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor) 
 

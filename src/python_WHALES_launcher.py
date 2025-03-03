@@ -104,7 +104,7 @@ import_weights = 'yes'
 
 Theta,tau,SigmaP,nump,total_gate_number,nominal_tracking_gate=instrument_parameters(mission)
 my_path_instr_corr_SWH,my_path_weights=setpaths_corrections(mission) 
-noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin=processing_choices(mission)
+noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor=processing_choices(mission)
 
 if my_path_instr_corr_SWH != '':
     my_path_instr_corr_SWH = os.path.join(
@@ -272,7 +272,52 @@ elif mission in ['jason3f2','swot']:
     if (mission=='jason3f2'): 
        mission = 'jason3'
 
+elif mission in['sentinel6_lrm'] :
+
+    S_group=S.groups['data_20']
+    S_group=S_group['ku']
+    #print(S_group.variables)
+    S_time=np.ma.getdata(S_group.variables['time'][:])
+    S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
+    #print np.shape(S_time)
+    S_height=np.ma.getdata(S_group.variables['altitude'][:])
+    S_height=np.reshape(S_height,(np.shape(S_time)[0],1) )
+
+    #S_swh=np.ma.getdata(S_group.variables['swh_ocean_20_ku'][:])
+
+    S_tracker=np.ma.getdata(S_group.variables['tracker_range_calibrated'][:])
+    S_tracker=np.reshape(S_tracker,(np.shape(S_time)[0],1) )
+
+    #S_range=np.ma.getdata(S.variables['range_ku_l1bs_echo_sar_ku'][:])
+
+    S_waveform_scale_factor=np.ma.getdata(S_group.variables['waveform_scale_factor'][:])
+    S_waveform_scale_factor=np.reshape(S_waveform_scale_factor,(np.shape(S_time)[0],1) )
+
+    S_waveform=np.ma.getdata(S_group.variables['power_waveform'][:])
+
+    S_lat=np.ma.getdata(S_group.variables['latitude'][:])
+    S_lat=np.reshape(S_lat,(np.shape(S_time)[0],1) )
+
+    S_lon=np.ma.getdata(S_group.variables['longitude'][:])
+    S_lon=np.reshape(S_lon,(np.shape(S_time)[0],1) )
+
+    sig0_scaling_factor=np.ma.getdata(S_group.variables['sig0_scaling_factor'][:])
+    sig0_scaling_factor=np.reshape(sig0_scaling_factor,(np.shape(S_time)[0],1) )
+
+    ptr_main_lobe_width=np.ma.getdata(S_group.variables['ptr_main_lobe_width'][:])
+    ptr_main_lobe_width=np.reshape(ptr_main_lobe_width,(np.shape(S_time)[0],1) )
+
+    S_landmask=np.ones((len(S_tracker),1))*0 
+
+    S_offnadir=np.ma.getdata(S_group.variables['off_nadir_roll_angle_pf'][:])
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+ 
+
 elif mission in ['ers2','ers1']:
+
+    S_qual_wf_not_tracking=np.ma.getdata( S.variables['qual_wf_not_tracking_20hz'][:] )
+    #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
+
     S_time=np.ma.getdata( S.variables['time_20hz'][:] )
     #S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
     
@@ -314,8 +359,64 @@ elif mission in ['ers2','ers1']:
     #S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time)[0],1) )
 
     S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_20hz'][:] )
-    #S_scaling_factor=np.reshape(S_scaling_factor,(np.shape(S_time)[0],1) )    elif mission in ['envisat']:
+    #S_scaling_factor=np.reshape(S_scaling_factor,(np.shape(S_time)[0],1) )    
 
+elif mission in ['envisat']:
+    
+    S_time=np.ma.getdata( S.variables['time_20'][:] ) 
+    print(np.shape(S_time))
+    S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
+    print(np.shape(S_time))
+    
+    #Time at 1-Hz for interpolation of fields available only at 1-Hz
+    S_time_1hz=np.ma.getdata( S.variables['time_01'][:] )
+    S_time_1hz=np.reshape(S_time_1hz,(np.shape(S_time_1hz)[0],1) )
+
+    S_height=np.ma.getdata( S.variables['alt_20'][:] )
+    S_height=np.reshape(S_height,(np.shape(S_time)[0],1) )
+    
+    S_swh=np.ma.getdata( S.variables['swh_ocean_20_ku'][:] )
+    S_swh=np.reshape(S_swh,(np.shape(S_time)[0],1) )
+    print(np.shape(S_height))
+    
+    S_tracker=np.ma.getdata( S.variables['tracker_range_20_ku'][:] )
+    S_tracker=np.reshape(S_tracker,(np.shape(S_time)[0],1) )
+    
+    S_range=np.ma.getdata( S.variables['range_ocean_20_ku'][:] )
+    S_range=np.reshape(S_range,(np.shape(S_time)[0],1) )
+    
+    S_waveform=np.ma.getdata( S.variables['waveform_fft_20_ku'][:] )
+    #S_waveform=np.reshape(S_waveform,(np.shape(S_time)[0],1) )
+    
+    S_lat=np.ma.getdata( S.variables['lat_20'][:] )
+    S_lat=np.reshape(S_lat,(np.shape(S_time)[0],1) )
+    
+    S_lon=np.ma.getdata( S.variables['lon_20'][:] )
+    S_lon=np.reshape(S_lon,(np.shape(S_time)[0],1) )
+    
+    #S_landmask=np.ma.getdata( S.variables['surf_type_20'][:] )
+    #S_landmask=np.reshape(S_landmask,(np.shape(S_time)[0],1) )
+    
+    #OFF NADIR ANGLE FROM WAVEFORM
+    #S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_wf_ocean_20_ku'][:] )     #degrees^2
+    #S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )
+    #S_offnadir=S_time*0.0
+    
+    #OFF NADIR ANGLE FROM PLATFORM
+    S_offnadir=np.ma.getdata( S.variables['off_nadir_angle_pf_01'][:] )
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time_1hz)[0],1) )
+    S_offnadir=np.interp(S_time[:,0],S_time_1hz[:,0],S_offnadir[:,0])
+    S_offnadir=np.reshape(S_offnadir,(np.shape(S_time)[0],1) )    
+    
+    S_atmos_corr=np.ma.getdata( S.variables['atm_cor_sig0_01_ku'][:] )
+    S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time_1hz)[0],1) )
+    #This field is at 1-Hz, so it has to be reshaped
+    S_atmos_corr=np.interp(S_time[:,0],S_time_1hz[:,0],S_atmos_corr[:,0])
+    S_atmos_corr=np.reshape(S_atmos_corr,(np.shape(S_time)[0],1) )
+
+    S_scaling_factor=np.ma.getdata( S.variables['scale_factor_20_ku'][:] )
+    S_scaling_factor=np.reshape(S_scaling_factor,(np.shape(S_time)[0],1) )
+    
 
 elif mission in ['saral', 'altika']:
     S_time = np.ma.getdata(S.variables['time_40hz'][:])
@@ -345,18 +446,18 @@ elif mission in ['saral', 'altika']:
     # This field is at 1-Hz, so it has to be reshaped
     S_atmos_corr = np.transpose(np.tile(S_atmos_corr, (np.shape(S_time)[1], 1)))
 
-    S_scaling_factor = np.ma.getdata(S.variables['scaling_factor_40hz'][:])
-
+    S_scaling_factor=np.ma.getdata( S.variables['scaling_factor_40hz'][:] )  
+    
 elif mission in ['cs2_lrm']:
 
-    S_time = np.ma.getdata(S.variables['time_20_ku'][:])
+    S_time=np.ma.getdata( S.variables['time_20_ku'][:] ) 
     print(np.shape(S_time))
-    S_time = np.reshape(S_time, (np.shape(S_time)[0], 1))
+    S_time=np.reshape(S_time,(np.shape(S_time)[0],1) )
     print(np.shape(S_time))
-
-    # Time at 1-Hz for interpolation of fields available only at 1-Hz
-    S_time_1hz = np.ma.getdata(S.variables['time_avg_01_ku'][:])
-    S_time_1hz = np.reshape(S_time_1hz, (np.shape(S_time_1hz)[0], 1))
+    
+    #Time at 1-Hz for interpolation of fields available only at 1-Hz
+    S_time_1hz=np.ma.getdata( S.variables['time_avg_01_ku'][:] )
+    S_time_1hz=np.reshape(S_time_1hz,(np.shape(S_time_1hz)[0],1) )
 
     S_height = np.ma.getdata(S.variables['alt_20_ku'][:])
     S_height = np.reshape(S_height, (np.shape(S_time)[0], 1))

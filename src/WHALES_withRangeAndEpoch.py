@@ -91,7 +91,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             exitflag=0
         
         #Calculation of the fitted waveform
-        x=xopt.x #This are the parameters estimated in minimisation
+        x=xopt.x #These are the parameters estimated in minimisation
 
         SWH_squared=( - SigmaP**2 + x[1]**2 )
         if SWH_squared>=0 :    
@@ -237,7 +237,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         # NOTE THAT:
         # Waveforms are not oversampled, because Jason has been tested with the addition of 
         # weights, whose distribution might change if we oversample the waveform.   
-        noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin=processing_choices(mission)
+        noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor=processing_choices(mission)
             
         index_originalbins=np.arange(0,self.total_gate_number-1,1)        
         # INITIAL DEFINITION OF EXIT VARIABLES
@@ -251,6 +251,18 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.uncssh = np.nan #Uncorrected Sea Surface Height: not computed 
         Epoch_LESfive=np.nan                
                 
+        if (interpolation_factor > 1): 
+                # AKIMA INTERPOLATION                
+                waveform_resampled=np.empty(np.size(waveform))*np.nan
+                y=waveform # 11 May 2015: forced conversion to double                
+                x=np.arange(1*tau,256*tau+0.01,tau)
+                x[-1]=round(x[-1],5)
+                xi=np.arange(1*tau,256*tau+0.01,tau/2)
+                xi[-1]=round(xi[-1],5)
+                yi=self.akima_interpolate(x,y,xi)
+                waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
+                # END AKIMA INTERPOLATION
+                waveform = waveform_resampled                
                 
                 
 # STEP 1: NOISE ESTIMATION                 
@@ -273,7 +285,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here   # 5 should be increased for ERS ... also need to exclue the noisegates ... 
         normalize_factor=1.3*np.nanmedian(C[igoodsample]);        
         D=C/normalize_factor
-        self.scale=estimated_noise
+        self.scale=normalize_factor
             
 # STEP 3: DEFINING RETRACKING ABSCISSA (xdata)
         xdata=np.empty([self.total_gate_number,])*np.nan
@@ -331,8 +343,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             else :
                 i=i+1
         
-
-        gate2=index_originalbins[edgeend+1]  #Gate2 is the end of the leading edge. One gate of tolerance is added for numerical reasons (for example if a leading-edge-only retracking is attempted)
+        leadextend=interpolation_factor
+        gate2=index_originalbins[edgeend+leadextend]  
+        #Gate2 is the end of the leading edge. One gate of tolerance is added for numerical reasons (for example if a leading-edge-only retracking is attempted)
         gate1=index_originalbins[edgestart]  #Gate1 is the start of the leading edge on the waveform
 
         self.gate2=gate2
@@ -384,14 +397,25 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 
                 if exitflag_yang==0: 
 #                #if convergence is not reached, we might need more gates (growingdue+2) 
-                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
-                        if growingdue < 6 : #In the special case of Saral, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
+#                #We need a variable to define this in processing choices ... 
+                    if mission.lower() == 'saral' or mission.lower() == 'saral_igdr' or mission.lower() == 'ers2_r_2cm' or mission.lower() == 'ers1':
+                        if growingdue < 6 : #In the special case of Saral and ERS, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
                                             #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time
                             growingdue=growingdue+2
                         else:
                             break
                     else:
                         growingdue=growingdue+2
+                    
+                    if mission.lower() == 'sentinel6_lrm':
+                        if growingdue < 6 : #In the special case of sentinel6, where the search for a leading edge is based on a smoothed waveform, the convergence often fails 
+                                            #for non-oceanic waveforms, therefore we limit the attempts to add more gates, in the interest of time. Note that in WHALES for Ifremer
+                                            #the same is also done for saral
+                            growingdue=growingdue+2
+                        else:
+                            break
+                    else:
+                        growingdue=growingdue+2                        
                 else: #else then we can stop the while cycle
                         break
                     
