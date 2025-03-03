@@ -46,7 +46,7 @@ def get_options():
     parser.add_argument(
         '-m', '--mission', type=str,
         choices=['ers1', 'ers2', 'envisat', 'jason1', 'jason2', 'jason3', 'saral', 'cs2_lrm',
-                 'jason3f', 'jason3f2','cfosat','swot'],
+                 'jason3f', 'jason3f2','cfosat','swot','sentinel6_lrm'],
         help='satellite mission'
     )
     parser.add_argument(

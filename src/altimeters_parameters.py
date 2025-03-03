@@ -93,6 +93,9 @@ def  setpaths_corrections(mission)  :
     elif mission in ['cs2_lrm']:
         my_path_instr_corr_SWH = ''
         my_path_weights = '../data/weights/weights_cs2_lrm.mat'
+    elif mission in ['sentinel6_lrm'] :
+        my_path_instr_corr_SWH='' 
+        my_path_weights='../data/weights/weights_s6_lrm.mat' 
     return my_path_instr_corr_SWH,my_path_weights
     
 
