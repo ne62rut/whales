@@ -510,9 +510,9 @@ print(np.shape(S_waveform),'shape of S_time array:',np.shape(S_time),', nr=',nr)
 landmask = np.empty(np.shape(S_time)) * np.nan
 
 swh_WHALES = np.empty(np.shape(S_time)) * np.nan
-startgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint8)
-endgate_WHALES   = np.empty(np.shape(S_time),dtype=np.uint8)
-finalgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint8) 
+startgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint16)
+endgate_WHALES   = np.empty(np.shape(S_time),dtype=np.uint16)
+finalgate_WHALES = np.empty(np.shape(S_time),dtype=np.uint16) 
 noise_WHALES = np.empty(np.shape(S_time)) * np.nan
 scale_WHALES = np.empty(np.shape(S_time)) * np.nan
 
@@ -613,6 +613,15 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
                 filter_norm = filter / np.mean(filter)
                 input['waveform'] = S_waveform[index_waveforms_row,
                                     index_waveforms_col, :] / filter_norm
+            elif mission=='envisat':
+                ' waveform '
+                input['waveform'] = S_waveform[index_waveforms_row,:]  
+            elif mission=='sentinel6_lrm':
+                ' waveform '
+                input['waveform'] = S_waveform[index_waveforms_row,:]                  
+            elif mission=='cs2_lrm':
+                ' waveform '
+                input['waveform'] = S_waveform[index_waveforms_row,:]
             elif mission=='ers2':
                 ' waveform '
                 input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]
@@ -646,7 +655,10 @@ for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
         if mission=='ers2':
             input['mission'] = 'ers2_r_2cm'
         elif mission=='ers1':
-            input['mission'] = 'ers1_r_2cm'            
+            input['mission'] = 'ers1'    
+        elif mission=='sentinel6_lrm':
+            input['mission'] = 'sentinel6_lrm'
+                    
 
         ' off nadir angle in degree '
         xifile=S_offnadir[index_waveforms_row, index_waveforms_col]

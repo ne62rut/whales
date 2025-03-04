@@ -35,7 +35,6 @@ from math            import erf
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-#from akima_interpolate import interpolate as akima
 ' WHALES Retracker '
 import time
 
@@ -133,8 +132,10 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         return(Epoch,t0,Sigma,Au)
 
 
-    def akima_interpolate(self,x, y, x_new, axis=-1, out=None):
-        """Return interpolated data using Akima's method.
+
+    def akima_interpolate(self, x, y, x_new, axis=-1, out=None):
+        """
+        Return interpolated data using Akima's method.
 
         This Python implementation is inspired by the Matlab(r) code by
         N. Shamsundar. It lacks certain capabilities of the C implementation
@@ -144,35 +145,18 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         Parameters
         ----------
         x : array like
-        1D array of monotonically increasing real values.
+            1D array of monotonically increasing real values.
         y : array like
-        N-D array of real values. y's length along the interpolation
-        axis must be equal to the length of x.
+            N-D array of real values. y's length along the interpolation
+            axis must be equal to the length of x.
         x_new : array like
-        New independent variables.
+            New independent variables.
         axis : int
-        Specifies axis of y along which to interpolate. Interpolation
-        defaults to last axis of y.
+            Specifies axis of y along which to interpolate. Interpolation
+            defaults to the last axis of y.
         out : array
-        Optional array to receive results. Dimension at axis must equal
-        length of x.
-
-        Examples
-        --------
-        >>> interpolate([0, 1, 2], [0, 0, 1], [0.5, 1.5])
-        array([-0.125,  0.375])
-        >>> x = np.sort(np.random.random(10) * 10)
-        >>> y = np.random.normal(0.0, 0.1, size=len(x))
-        >>> z = interpolate(x, y, x)
-        >>> np.allclose(y, z)
-        True
-        >>> x = x[:10]
-        >>> y = np.reshape(y, (10, -1))
-        >>> z = np.reshape(y, (10, -1))
-        >>> interpolate(x, y, x, axis=0, out=z)
-        >>> np.allclose(y, z)
-        True
-
+            Optional array to receive results. Dimension at the specified
+            axis must equal the length of x.
         """
         x = np.array(x, dtype=np.float64, copy=True)
         y = np.array(y, dtype=np.float64, copy=True)
@@ -289,7 +273,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             
 # STEP 3: DEFINING RETRACKING ABSCISSA (xdata)
         xdata=np.empty([self.total_gate_number,])*np.nan
-        xdata[index_originalbins]=np.arange(0,((np.size(index_originalbins)-1)*tau)+tau,tau)
+        xdata[index_originalbins]=np.arange(0,((np.size(index_originalbins))*tau),tau)
         iii=1            
         for iii in np.arange(1,self.total_gate_number,2) :
             if iii==self.total_gate_number-1 :
@@ -452,7 +436,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             SWH_yang=np.real(SWH_yang)
             if SWH_yang<0:
                 SWH_yang=0 # THE WHALES ALGORITHM IS DERIVED ONLY FOR POSITIVE SSB
-            if SWH_yang< maxHs:
+            if SWH_yang< maxHs: #Estimations of high SWH in the ERS are too noisy, so we extend the retracking window for SWH_yang>10m instead of 15m
                 gateafterLE=np.ceil(ALEScoeff0+ALEScoeff1*np.abs(SWH_yang))                  
                 stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE            
             else: #we consider maxHs m as the maximum possible SWH value: this used to be set to 15. 
