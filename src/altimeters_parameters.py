@@ -118,7 +118,7 @@ def  alti_read_l2lr(mission,filename):
         lat1  = np.ma.getdata(S.variables['lat'][:])
         lon1  = np.ma.getdata(S.variables['lon'][:])
         time1 = np.ma.getdata(S.variables['time'][:])
-        flag1 = 3-np.ma.getdata(S.variables['swh_quality_level'][:])  
+        flag1 = np.ma.getdata(S.variables['swh_quality_level'][:])  
 
         timeref= "1981-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
     if mission.lower() in ['cryosat2']:
@@ -401,7 +401,7 @@ def  alti_read_l2hrw_cci(mission,filename):
     print('filename CCI;',filename)
     S = netCDF4.Dataset(filename, 'r')
     
-    if mission.lower() in ['jason1','jason2','jason3','saral','swot']:
+    if mission.lower() in ['jason1','jason2','jason3','saral','swot','ers2']:
     # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
         swh1 = np.ma.getdata(S.variables['swh_WHALES_20hz'][:])   # this is MLE4
         lat1  = np.ma.getdata(S.variables['lat_20hz'][:])

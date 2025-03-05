@@ -590,7 +590,11 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
     print("Retracking waveform group " + str(index_waveforms_row) + "  of  " +
               str(np.shape(S_time)[0]))
     for index_waveforms_col in np.arange(0, np.shape(S_time)[1], 1):
-        
+        if mission=='ers2' or mission=='ers1':
+            if S_qual_wf_not_tracking[index_waveforms_row,index_waveforms_col]==1:
+                print('Periodic peaky waveform, excluded using qual_wf_not_tracking')
+                continue
+
  
         input = {}
         if cal2 == 'on':
