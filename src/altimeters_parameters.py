@@ -217,7 +217,7 @@ def  alti_read_l2lr_cci(mission,filename):
 ######################  Generic reading of altimeter data: waveforms and 20Hz parameters
 def  alti_read_l2hrw(mission,filename):
     '''
-    reads altimeter data (LRM 1Hz only) from file name. 
+    reads altimeter data (LRM high rate: 20 or 40 Hz ) from file name. 
     The outout is a xarray dataset 
     '''
     import xarray as xr
@@ -410,8 +410,8 @@ def  alti_read_l2hrw_cci(mission,filename):
         flag1 = np.ma.getdata(S.variables['swh_WHALES_qual_20hz'][:])
         timeref= "2000-01-01 00:00:00.0"			# WARNING: this should be read from the attribute of the time variable ... 
         [nlr,n20]=np.shape(swh1)
-    if mission.lower() in ['cryosat2','jason3f']:
-        # AVISO SGDR version F
+    if mission.lower() in ['cryosat2','jason3f','sentinel6_lrm']:
+        # AVISO SGDR version F for J3 ... 
         S_time = np.ma.getdata(S.variables['time_20hz'][:])
         nhf=20
         nall=len(S_time)
@@ -426,6 +426,9 @@ def  alti_read_l2hrw_cci(mission,filename):
         S_swh = np.ma.getdata(S.variables['swh_WHALES_20hz'][:]) # this is MLE4
         swh1 = np.reshape(S_swh[0:nal], (nlr,nhf))
 
+        flag = np.ma.getdata(S.variables['swh_WHALES_qual_20hz'][:])
+        flag1 = np.reshape(flag[0:nal], (nlr,nhf))
+
         S_lat= np.ma.getdata(S.variables['lat_20hz'][:])
         lat1 = np.reshape(S_lat[0:nal], (nlr,nhf))
 
@@ -438,6 +441,7 @@ def  alti_read_l2hrw_cci(mission,filename):
         {   "swh2d": (["time","meas_ind"], swh1),
             "lon2d": (["time","meas_ind"], lon1),
             "lat2d": (["time","meas_ind"], lat1),
+            "flag2d": (["time","meas_ind"], flag1),
  #           "waveforms": (["time","meas_ind","wvf_ind"], waveforms),
         },
         coords={
@@ -542,6 +546,8 @@ def  processing_choices(mission)  :
     noisemin=0 #1
     interpolation_factor=1
     if mission.lower() == 'envisat':
+                gate_number_processing=128 
+                index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
                 noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 startgate=4                 #First gate to be considered in the retracking window
                 ALEScoeff0=2.45             #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
@@ -551,6 +557,8 @@ def  processing_choices(mission)  :
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory
 
     elif mission.lower() == 'saral' or mission.lower() == 'saral_igdr':
+                gate_number_processing=128 
+                index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
                 #thrb=0.7   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
                 #noisemin=1
                 noisegates=10+np.arange(4,10); #gates used to estimate Thermal Noise # changed by Marine De Carlo
@@ -563,6 +571,8 @@ def  processing_choices(mission)  :
 
    
     elif mission.lower() == 'jason2' or mission.lower() == 'jason1' or mission.lower() == 'jason3' or mission.lower() == 'jason3f' or mission.lower() == 'jason3f2' or mission.lower() == 'swot': 
+                gate_number_processing=104
+                index_originalbins=np.arange(0,103,1) #Gate index of the waveform samples
                 noisegates=np.arange(0,6); #gates used to estimate Thermal Noise
                 startgate=1 #First gate to be considered in the retracking window
                 ALEScoeff0=3.89 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
@@ -573,8 +583,8 @@ def  processing_choices(mission)  :
 
     elif mission.lower() == 'sentinel6_lrm':   
                 interpolation_factor=2          #This is the interpolation factor that will be applied on the original waveform
-                index_originalbins=np.arange(0,256*interpolation_factor,interpolation_factor) 
-                total_gate_number=256*interpolation_factor
+                index_originalbins=np.arange(0,256*interpolation_factor,interpolation_factor) ; # Question by Fabrice: why 256 here and not 255 ? 
+                gate_number_processing=256*interpolation_factor
                 noisegates=np.arange(4*interpolation_factor,10*interpolation_factor);
                 #if you have a sampling rate of 395e6 then your range bins are 1/395e6 spaced from each other in time, i.e. 2.531 ns
                 startgate=4*interpolation_factor #First gate to be considered in the retracking window 
@@ -582,12 +592,15 @@ def  processing_choices(mission)  :
                 ALEScoeff0=0.3784
                 ALEScoeff1=3.6347    
                 Err_tolerance_vector=0.3;
+                maxHs=15
 
 
     elif mission.lower() == 'cs2_lrm' :
+                gate_number_processing=128 
+                index_originalbins=np.arange(0,127,1) #Gate index of the waveform samples
                 #noisegates=np.arange(4,10); #gates used to estimate Thermal Noise
                 noisegates=np.arange(6,12); #gates used to estimate Thermal Noise
-                noisemin=1
+                #noisemin=1
                 startgate=4 #First gate to be considered in the retracking window
                 ALEScoeff0=3.68 #experimental values for SWH. it is the constant term in the definition of the number of gates to be considered in the retracking
                                 #after the middle of the leading edge
@@ -596,17 +609,13 @@ def  processing_choices(mission)  :
                                                         #to retrack the same waveform in a different way if fitting performances are not satisfactory                 
 
 
-    elif mission.lower() == 'ers2_r': 
-                print("Mission not yet supported")
-                sys.exit(0)
-                
     elif mission.lower() in ['ers1','ers2','ers2_r_2cm']:
                 thrb=0.7   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
                 thra=0.1
-                noisemin=1
-                
-                index_originalbins=np.arange(0,63,1) 
-                total_gate_number=64
+                #noisemin=1
+                index_originalbins=np.arange(0,63*interpolation_factor,interpolation_factor)
+                gate_number_processing=64*interpolation_factor
+
                 noisegates=np.arange(10*interpolation_factor,13*interpolation_factor); #gates used to estimate Thermal Noise (see mail from David 
                 #noisegates=np.arange(10,13); #gates used to estimate Thermal Noise (see mail from David Brockley)
                 startgate=8 #First gate to be considered in the retracking window, we choose this because first gates are often corrupted
@@ -629,5 +638,5 @@ def  processing_choices(mission)  :
     else:
                 print("unknown mission")
                 sys.exit(0)
-    return(noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor) 
+    return(noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor,index_originalbins,gate_number_processing) 
 

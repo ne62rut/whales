@@ -221,9 +221,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         # NOTE THAT:
         # Waveforms are not oversampled, because Jason has been tested with the addition of 
         # weights, whose distribution might change if we oversample the waveform.   
-        noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor=processing_choices(mission)
+        noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor,index_originalbins,total_gate_number=processing_choices(mission)
             
-        index_originalbins=np.arange(0,self.total_gate_number-1,1)        
         # INITIAL DEFINITION OF EXIT VARIABLES
 
         self.Epoch=np.nan
@@ -234,7 +233,6 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.range = np.nan                     
         self.uncssh = np.nan #Uncorrected Sea Surface Height: not computed 
         Epoch_LESfive=np.nan                
-                
         if (interpolation_factor > 1): 
                 # AKIMA INTERPOLATION                
                 waveform_resampled=np.empty(np.size(waveform))*np.nan
@@ -258,12 +256,6 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 noisegates[0]=np.argmin(waveform[noisegates[0]+4:self.nominal_tracking_gate])
         C = waveform - estimated_noise;
         self.noise=estimated_noise
-        #inds=np.where(C[20:110] < 0)[0]
-        #C=np.where(C < 0,0,C)
-        #inds2=np.where(C[20:110] < 0)[0]
-        #if len(inds2) >0:
-        #    print('Problem:',len(inds2),estimated_noise,np.nanmax(waveform),np.nanmin(waveform[14:110]),inds)	
-
             
 # STEP 2: WAVEFORM NORMALISATION
         igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here   # 5 should be increased for ERS ... also need to exclue the noisegates ... 
@@ -272,11 +264,12 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.scale=normalize_factor
             
 # STEP 3: DEFINING RETRACKING ABSCISSA (xdata)
-        xdata=np.empty([self.total_gate_number,])*np.nan
-        xdata[index_originalbins]=np.arange(0,((np.size(index_originalbins))*tau),tau)
+        xdata=np.empty([total_gate_number,])*np.nan
+        xdata[index_originalbins]=np.arange(0,((np.size(index_originalbins)-1)*tau)+tau,tau)
+        #xdata[index_originalbins]=np.arange(0,((np.size(index_originalbins))*tau),tau)
         iii=1            
-        for iii in np.arange(1,self.total_gate_number,2) :
-            if iii==self.total_gate_number-1 :
+        for iii in np.arange(1,total_gate_number,2) :
+            if iii==total_gate_number-1 :
                 xdata[iii]=xdata[iii-1]+(xdata[iii-1]-xdata[iii-2])
             else:
                 xdata[iii]=(xdata[iii+1]+xdata[iii-1])/2
@@ -284,14 +277,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             
         
 # STEP 4: DETECTION OF LEADING EDGE
-        self.Wt_all_yang= np.empty(self.total_gate_number)*np.nan       
-        self.Wt_all_LESfive= np.empty(self.total_gate_number)*np.nan  
+        self.Wt_all_yang= np.empty(total_gate_number)*np.nan       
+        self.Wt_all_LESfive= np.empty(total_gate_number)*np.nan  
         
             # STEP 4: FIND LEADING EDGE: For explanations see Passaro et al. 2014 and 2018
         edgestart=1
         edgeend=1
         
-        # --- Optional smoothing (introduced for SARAL with smooth = 3)
+        # --- Optional smoothing (introduced for SARAL with smooth = 3. Recommended values: s=3 for SARAL and Sentinel6_lrm, S=5 for ERS1/2)
         if self.smooth > 1 :
             wv0=D[index_originalbins]
             kernel_size = self.smooth
@@ -356,7 +349,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             x1_yang[2]=0 #initialising to start the while cycle
             growingdue=0 #variation of the number of gates considered
             SWH=0.1  # if not initialized here, SWH may not be defined with thrb=0.7  (maybe edgeend ins undefined ??) 
-            while Err_yang>tol_Err_yang and (gate2+growingdue)<self.total_gate_number and sigma_initial<100 :
+            while Err_yang>tol_Err_yang and (gate2+growingdue)<total_gate_number and sigma_initial<100 :
             #while cycle: check on the Fitting Error, check that the number of available gates is not being exceeding, check that initial condition has been defined as a number (sigma_inital<100, could be removed)    
                 
                 weightflag=0  #No weights are used in the first (leading-edge only) retracker
@@ -442,18 +435,29 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             else: #we consider maxHs m as the maximum possible SWH value: this used to be set to 15. 
                 gateafterLE=np.ceil(ALEScoeff0+ALEScoeff1*maxHs)                   
                 stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE
-            if stopgate<=self.total_gate_number: #if we need more than the actual number of gates, we use the full waveform
-                pass
+            if interpolation_factor > 1 :
+                if stopgate<=total_gate_number/interpolation_factor-1*interpolation_factor: #if we need more than the actual number of gates, we use the full waveform
+                    pass
+                else:
+                    stopgate=total_gate_number/interpolation_factor-1*interpolation_factor #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"                
             else:
-                stopgate=self.total_gate_number-1 #-1 because then we have the condition "(stopgate+growingdue)<self.total_gate_number"
-             
+                if stopgate<=total_gate_number: #if we need more than the actual number of gates, we use the full waveform
+                    pass
+                else:
+                    stopgate=total_gate_number-1 #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"                    
+
+
+
+
+
             if xdata[-1]<stopgate*tau : #if the computed stopgate is bigger than the actual length of the vector
                                         #(can happen for very high SWH), then stopgate will be the end of the waveform
                 stopgate=np.size(xdata)-1
-            else: # FIND ON THE OVERSAMPLED WAVEFORM THE POSITION CORRESPONDING TO THE COMPUTED STOPGATE
-                stopgate=np.nonzero(xdata==stopgate*tau)[0]-1; #-1 because the first element of xdata is 0 and not 3.125
-            
-            
+            else: # FIND ON THE OVERSAMPLED WAVEFORM THE POSITION CORRESPONDING TO THE COMPUTED STOPGATE                        
+                stopgate=np.nonzero(xdata==stopgate*tau)[0]-1 #-1 because the first element of xdata is 0 and not 3.125
+
+
+
             #we don't want to stop before the end of the
             #leading edge
             if stopgate>=gate2:
@@ -479,7 +483,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                     if Err_LESfive>tol_Err_LESfive:
                         growingdue=0 #variation of the number of gates considered
                         x1_LESfive[1]=0 #initializing to start the while cycle
-                        while Err_LESfive>tol_Err_LESfive and (stopgate+growingdue)<self.total_gate_number and sigma_initial<100 : #first while cycle: check on the Fitting Error
+                        while Err_LESfive>tol_Err_LESfive and (stopgate+growingdue)<total_gate_number and sigma_initial<100 : #first while cycle: check on the Fitting Error
 
                             weightflag=1
                             
@@ -503,7 +507,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  index_nanweights=np.where(np.isnan(weights_select))[0]
                                  weights_select[index_nanweights]=self.weight_outsub #Transform the NaNs of the weight vector in ones
                             
-                                 gatemax=np.min([self.total_gate_number-1,gate1+index_endweight-index_startweight])
+                                 gatemax=np.min([total_gate_number-1,gate1+index_endweight-index_startweight])
                                  this_weights[gate1:gatemax]=weights_select[index_startweight:index_startweight+gatemax-gate1]
 
                             elif self.weights_type == 2:
@@ -573,7 +577,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                     
                                     
                             else: # then we can stop the while cycle
-                                growingdue=self.total_gate_number-gate2;
+                                growingdue=total_gate_number-gate2;
                                 
                                 
                                 
@@ -630,7 +634,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             self.Error = np.nan 
             self.D=D
             self.this_weights=D*0+np.nan
-            self.gate3=self.total_gate_number
+            self.gate3=total_gate_number
 
         self.model = self.Wt_all_LESfive.copy()  #*normalize_factor  #Fitted Waveform
             

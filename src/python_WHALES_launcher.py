@@ -104,7 +104,7 @@ import_weights = 'yes'
 
 Theta,tau,SigmaP,nump,total_gate_number,nominal_tracking_gate=instrument_parameters(mission)
 my_path_instr_corr_SWH,my_path_weights=setpaths_corrections(mission) 
-noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor=processing_choices(mission)
+noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor,index_originalbins,gate_number_processing=processing_choices(mission)
 
 if my_path_instr_corr_SWH != '':
     my_path_instr_corr_SWH = os.path.join(
@@ -585,7 +585,7 @@ if debug=='1':
 # Now looping over waveforms for retracking
 # First loop is on 1 Hz data, second loop is on higher rate data (20 Hz for Jason)
 #
-for index_waveforms_row in np.arange(0, np.shape(S_time)[0], 1):
+for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
 #for index_waveforms_row in np.arange(0, 10, 1):
     print("Retracking waveform group " + str(index_waveforms_row) + "  of  " +
               str(np.shape(S_time)[0]))
