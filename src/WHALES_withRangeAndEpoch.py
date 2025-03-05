@@ -78,6 +78,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
     
         a=a/1000000000 #/ns
         c_xi=c_xi/1000000000 #1/ns
+
+
         if modelcost == 'brown_LS':
            xopt = minimize(waveform_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
         elif modelcost == 'brown_ML':
@@ -105,8 +107,6 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         A=x[2]/2*np.exp((-4/Gamma)*(np.sin(Zeta))**2)
         Wt=A*np.exp(-v)*(1+scipy.special.erf(u))
         
-    
-    
         if np.size(ydata)>0: 
             Err=np.sqrt( 1./np.size(ydata) * np.sum( (ydata-Wt)**2 ))  #Fitting Error
         else:
@@ -255,8 +255,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 estimated_noise=estimated_noise2
                 noisegates[0]=np.argmin(waveform[noisegates[0]+4:self.nominal_tracking_gate])
         C = waveform - estimated_noise;
+
         self.noise=estimated_noise
-            
 # STEP 2: WAVEFORM NORMALISATION
         igoodsample=C>np.max([5, 2*estimated_noise]) #5 and 2 are arbitrary factors here   # 5 should be increased for ERS ... also need to exclue the noisegates ... 
         normalize_factor=1.3*np.nanmedian(C[igoodsample]);        
@@ -359,6 +359,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                         self.NM_fit( xdata[startgate:gate2+growingdue+1] , D[startgate:gate2+growingdue+1],\
                         self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,\
                         np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag,modelcost='brown_LS')
+
 
 
                 if gate2>gate1+1 and gate1>0 and np.size(Wt_yang)>1 and gate1>startgate and gate2>startgate+1 :
@@ -478,7 +479,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             exitflag_LESfive=0
             Err_LESfive=1  
             tol_Err_LESfive=Err_tolerance_vector
-                    
+                
             if Err_yang<1: #To make it faster: If the first pass was not able to retrack the leading edge, it's useless to go on
                     if Err_LESfive>tol_Err_LESfive:
                         growingdue=0 #variation of the number of gates considered
@@ -494,21 +495,36 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                             if self.weights_type == 0:
                                  this_weights=np.zeros(len(waveform))+1.0
                             elif self.weights_type == 1:
-                                 this_weights=np.zeros(len(waveform))+self.weight_outsub
                                  weigths_SWH_vector=np.arange(0,10.5,0.5)
                                  select_weights=np.argmin(  np.abs(np.abs(SWH_yang)-weigths_SWH_vector)  )
-                                 index_startweight=np.where(self.weights_flag[select_weights,:]==1)[0] #identify the start and the end of the leading edge in the weight vector
-                                 index_endweight=np.where(self.weights_flag[select_weights,:]==2)[0]
-                                 index_startweight=index_startweight[0] #convert array to index
-                                 index_endweight=index_endweight[0] #convert array to index
-                                 #In the following lines,the closest value of SWH is searched in the table, considering the exit of the first pass
-                                 #Select the right line of weights
+                                #Select the right line of weights
                                  weights_select=self.weights[select_weights,:]
                                  index_nanweights=np.where(np.isnan(weights_select))[0]
                                  weights_select[index_nanweights]=self.weight_outsub #Transform the NaNs of the weight vector in ones
+                                 index_startweight=np.where(self.weights_flag[select_weights,:]==1)[0] #identify the start and the end of the leading edge in the weight vector
+                                 index_endweight=np.where(self.weights_flag[select_weights,:]==2)[0]
+                                 index_startweight=index_startweight[0]*interpolation_factor #convert array to index
+                                 index_endweight=index_endweight[0]*interpolation_factor #convert array to index
+
+                                 if interpolation_factor > 1 :
+                                     #Consider the possibility that the waveform is being oversampled and therefore the weights matrix has also to be oversampled
+                                     # Get the original number of samples
+                                     original_length = weights_select.shape[0]
+
+                                     # Create a new index for the interpolated data
+                                     original_indices = np.linspace(0, original_length - 1, num=original_length)
+                                     new_indices = np.linspace(0, original_length - 1, num=total_gate_number)
+       
+                                     # Perform 1D interpolation
+                                     weights_select = np.interp(new_indices, original_indices, weights_select)
                             
-                                 gatemax=np.min([total_gate_number-1,gate1+index_endweight-index_startweight])
-                                 this_weights[gate1:gatemax]=weights_select[index_startweight:index_startweight+gatemax-gate1]
+                                 this_weights=np.zeros(len(waveform))+self.weight_outsub
+                                 if gate1+index_endweight-index_startweight<total_gate_number :
+                                     this_weights[gate1:gate1+(index_endweight-index_startweight)]=weights_select[index_startweight:index_endweight]
+                                     this_weights=1./this_weights
+
+                                 #gatemax=np.min([total_gate_number-1,gate1+index_endweight-index_startweight])
+                                 #this_weights[gate1:gatemax]=weights_select[index_startweight:index_startweight+gatemax-gate1]
 
                             elif self.weights_type == 2:
                                  x1_brown=x1_yang
@@ -528,6 +544,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  c_xi=c_xi/1000000000 #1/ns
                                  wbrown=0.001+wf_brown_eval(xdata,x1_brown,0.,Gamma,Zeta,c_xi,[1])/self.sqrtn # tau,PTR)
                                  this_weights[gate1:gate2]=wbrown[gate1:gate2]
+                                 this_weights=1./this_weights
+
 
                             elif self.weights_type == 3:
                                  x1_brown=x1_yang
@@ -546,8 +564,9 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                                  c_xi=c_xi/1000000000 #1/ns
                                  wbrown=0.001+(wf_brown_eval(xdata,x1_brown,0.,Gamma,Zeta,c_xi,[1])/self.sqrtn)**2 # tau,PTR)
                                  this_weights[gate1:gate2]=wbrown[gate1:gate2]
+                                 this_weights=1./this_weights
                             
-                            this_weights=1./this_weights
+
                             # Launch the second retracking process
                             self.gate3=stopgate+growingdue+1
                             if self.costfunction == 'LS':

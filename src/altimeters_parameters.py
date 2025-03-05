@@ -49,7 +49,8 @@ def  instrument_parameters(mission)  :
     elif mission in ['jason3', 'jason3f','jason3f2','swot']:
         Theta=1.29 *np.pi/180
     elif mission in ['sentinel6_lrm']:
-        tau=2.532              
+        tau=2.532             
+        SigmaP=0.513*tau  
         #note on the gate width: The instrument samples the waveforms with a 395 MHz clock, providing a nominal_sampling = c / 395e6 / 2 = ~0.379m (with c=speed of light). 
         Theta=1.33 *np.pi/180
         total_gate_number=256
