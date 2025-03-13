@@ -706,27 +706,27 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
         noise_WHALES[index_waveforms_row, index_waveforms_col] = retracker.noise
         scale_WHALES[index_waveforms_row, index_waveforms_col] = retracker.scale
 
-        if mission in ['envisat', 'envisat_over']:
-            sigma0_WHALES[
-                index_waveforms_row, index_waveforms_col] = retracker.Amplitude + \
-                                                            S_atmos_corr[
-                                                                index_waveforms_row, index_waveforms_col] + \
-                                                            S_scaling_factor[
-                                                                index_waveforms_row, index_waveforms_col] - 33.1133
+        swh_WHALES[index_waveforms_row,index_waveforms_col]               =retracker.SWH
+        
+        Epoch_WHALES[index_waveforms_row,index_waveforms_col]               =retracker.Epoch
+
+# WARNING: NEED TO CHECK FOR CFOSAT AND SWOT ... 
+        if mission in ['envisat','envisat_over']:
+            sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col] -33.1133
+        elif mission in ['sentinel6_lrm']:
+            sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+sig0_scaling_factor[index_waveforms_row,index_waveforms_col]+ 10 * np.log10(S_waveform_scale_factor[index_waveforms_row,index_waveforms_col])
         elif mission in ['ers2']: #The constant bias of 103.92 has been derived from the personal communication of David Brockley and it is also mentioned in the SGDR user manual for REAPER
             sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col] -103.92
         elif mission in ['ers1']: #The constant bias  has been derived from the personal communication of David Brockley and it is also mentioned in the SGDR user manual for REAPER
             sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col] -108.33    
-        elif mission in ['jason2', 'jason1', 'saral', 'saral_igdr', 'jason3']:
-            sigma0_WHALES[
-                index_waveforms_row, index_waveforms_col] = retracker.Amplitude + \
-                                                            S_atmos_corr[
-                                                                index_waveforms_row, index_waveforms_col] + \
-                                                            S_scaling_factor[
-                                                                index_waveforms_row, index_waveforms_col]
+        elif mission in ['jason2','jason1','saral','saral_igdr','jason3','swot']:
+            sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude+S_atmos_corr[index_waveforms_row,index_waveforms_col]+ S_scaling_factor[index_waveforms_row,index_waveforms_col]
         elif mission in ['cs2_lrm']:
-            sigma0_WHALES[
-                index_waveforms_row, index_waveforms_col] = retracker.Amplitude
+            sigma0_WHALES[index_waveforms_row,index_waveforms_col]            =retracker.Amplitude
+        
+        range_WHALES[index_waveforms_row,index_waveforms_col]             =retracker.range
+        
+        Amplitude_WHALES[index_waveforms_row,index_waveforms_col] = retracker.Norm_Amplitude
 
         range_WHALES[index_waveforms_row, index_waveforms_col] = retracker.range
 
