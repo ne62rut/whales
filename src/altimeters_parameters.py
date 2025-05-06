@@ -404,6 +404,7 @@ def  alti_read_l2hrw_cci(mission,filename):
     if mission.lower() in ['jason1','jason2','jason3','saral','swot','ers2']:
     # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
         swh1 = np.ma.getdata(S.variables['swh_WHALES_20hz'][:])   # this is MLE4
+        sig1 = np.ma.getdata(S.variables['sigma0_WHALES_20hz'][:])  
         lat1  = np.ma.getdata(S.variables['lat_20hz'][:])
         lon1  = np.ma.getdata(S.variables['lon_20hz'][:])
         time2 = np.ma.getdata(S.variables['time_20hz'][:])
@@ -426,7 +427,10 @@ def  alti_read_l2hrw_cci(mission,filename):
         
         S_swh = np.ma.getdata(S.variables['swh_WHALES_20hz'][:]) # this is MLE4
         swh1 = np.reshape(S_swh[0:nal], (nlr,nhf))
-
+        
+        S_sig = np.ma.getdata(S.variables['sigma0_WHALES_20hz'][:]) 
+        sig1 = np.reshape(S_sig[0:nal], (nlr,nhf))
+     
         flag = np.ma.getdata(S.variables['swh_WHALES_qual_20hz'][:])
         flag1 = np.reshape(flag[0:nal], (nlr,nhf))
 
@@ -440,6 +444,7 @@ def  alti_read_l2hrw_cci(mission,filename):
 
     ds = xr.Dataset(
         {   "swh2d": (["time","meas_ind"], swh1),
+            "sig2d": (["time","meas_ind"], sig1),
             "lon2d": (["time","meas_ind"], lon1),
             "lat2d": (["time","meas_ind"], lat1),
             "flag2d": (["time","meas_ind"], flag1),
