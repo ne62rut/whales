@@ -124,7 +124,6 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         t0=x[0] # ns
         Sigma=x[1]
         Au=x[2]
-        
         #============== Calculate Epoch from t0=========================
         Epoch=t0 - self.nominal_tracking_gate*self.tau;  
         Epoch=Epoch*(c/2)  #m conversion from ns to meters(1gate=0.468m->c*tau/2)
@@ -222,7 +221,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         # Waveforms are not oversampled, because Jason has been tested with the addition of 
         # weights, whose distribution might change if we oversample the waveform.   
         noisegates,startgate,ALEScoeff0,ALEScoeff1,Err_tolerance_vector,thra,thrb,minHs,maxHs,noisemin,interpolation_factor,index_originalbins,total_gate_number=processing_choices(mission)
-            
+        
         # INITIAL DEFINITION OF EXIT VARIABLES
 
         self.Epoch=np.nan
@@ -234,17 +233,17 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.uncssh = np.nan #Uncorrected Sea Surface Height: not computed 
         Epoch_LESfive=np.nan                
         if (interpolation_factor > 1): 
-                # AKIMA INTERPOLATION                
-                waveform_resampled=np.empty(np.size(waveform))*np.nan
-                y=waveform # 11 May 2015: forced conversion to double                
-                x=np.arange(1*tau,256*tau+0.01,tau)
-                x[-1]=round(x[-1],5)
-                xi=np.arange(1*tau,256*tau+0.01,tau/2)
-                xi[-1]=round(xi[-1],5)
-                yi=self.akima_interpolate(x,y,xi)
-                waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
-                # END AKIMA INTERPOLATION
-                waveform = waveform_resampled                
+            # AKIMA INTERPOLATION                
+            waveform_resampled=np.empty(np.size(waveform))*np.nan
+            y=waveform # 11 May 2015: forced conversion to double           
+            x=np.arange(1*tau,int(total_gate_number/interpolation_factor)*tau+0.01,tau)
+            x[-1]=round(x[-1],5)
+            xi=np.arange(1*tau,int(total_gate_number/interpolation_factor)*tau+0.01,tau/2)
+            xi[-1]=round(xi[-1],5)
+            yi=self.akima_interpolate(x,y,xi)
+            waveform_resampled=np.append(yi,yi[-1]) # repeat last sample to make 208                
+            # END AKIMA INTERPOLATION
+            waveform = waveform_resampled                
                 
                 
 # STEP 1: NOISE ESTIMATION                 
@@ -340,7 +339,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             Err_yang=1
     
             # STEP 5.1: FIRST PASS INITIAL CONDITIONS
-            x_initial=(edgestart-1)*tau;
+            x_initial=(edgestart-1)*tau
             sigma_initial=(edgeend-edgestart)*tau/(2*np.sqrt(2))
             ampl_initial=2*np.mean(D[gate1:gate2])
             
@@ -359,6 +358,14 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                         self.NM_fit( xdata[startgate:gate2+growingdue+1] , D[startgate:gate2+growingdue+1],\
                         self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,\
                         np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag,modelcost='brown_LS')
+                
+                #print('startgate',startgate)
+                #print('gate2+growingdue+1',gate2+growingdue+1)
+                #print('D[startgate:gate2+growingdue+1]',D[startgate:gate2+growingdue+1])
+                #print('x1_yang',x1_yang)
+                #print('SWH',SWH)
+                #print('x_initial',x_initial)
+                #print('exitflag_yang',exitflag_yang)
 
 
 
@@ -400,7 +407,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
             self.D=D  #D is the normalised original waveform
   
-                    
+
                       
             del(growingdue)    
                     
@@ -432,21 +439,25 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 SWH_yang=0 # THE WHALES ALGORITHM IS DERIVED ONLY FOR POSITIVE SSB
             if SWH_yang< maxHs: #Estimations of high SWH in the ERS are too noisy, so we extend the retracking window for SWH_yang>10m instead of 15m
                 gateafterLE=np.ceil(ALEScoeff0+ALEScoeff1*np.abs(SWH_yang))                  
-                stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE            
+                stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE   
+                #print('436')         
             else: #we consider maxHs m as the maximum possible SWH value: this used to be set to 15. 
                 gateafterLE=np.ceil(ALEScoeff0+ALEScoeff1*maxHs)                   
                 stopgate=np.ceil(x1_yang[0]/tau)+gateafterLE
+                #print('440')
+                #print(x1_yang[0])
             if interpolation_factor > 1 :
                 if stopgate<=total_gate_number/interpolation_factor-1*interpolation_factor: #if we need more than the actual number of gates, we use the full waveform
                     pass
                 else:
                     stopgate=total_gate_number/interpolation_factor-1*interpolation_factor #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"                
+                    #print('444')
             else:
                 if stopgate<=total_gate_number: #if we need more than the actual number of gates, we use the full waveform
                     pass
                 else:
-                    stopgate=total_gate_number-1 #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"                    
-
+                    stopgate=total_gate_number-1 #-1 because then we have the condition "(stopgate+growingdue)<total_gate_number"  
+                    #print('446')                  
 
 
 
@@ -454,13 +465,18 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             if xdata[-1]<stopgate*tau : #if the computed stopgate is bigger than the actual length of the vector
                                         #(can happen for very high SWH), then stopgate will be the end of the waveform
                 stopgate=np.size(xdata)-1
+            elif stopgate*tau<0: #if the computed stopgate is negative, something has failed in the fitting, we put the stopgate at the end of the waveform
+                stopgate=np.size(xdata)-1
             else: # FIND ON THE OVERSAMPLED WAVEFORM THE POSITION CORRESPONDING TO THE COMPUTED STOPGATE                        
+                #print(xdata)
+                #print(stopgate*tau)
                 stopgate=np.nonzero(xdata==stopgate*tau)[0]-1 #-1 because the first element of xdata is 0 and not 3.125
 
 
 
             #we don't want to stop before the end of the
             #leading edge
+            
             if stopgate>=gate2:
                 pass
             else:

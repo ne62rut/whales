@@ -631,6 +631,7 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
                 input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]
             elif mission=='ers1':
                 ' waveform '
+                input['waveform'] = S_waveform[index_waveforms_row,index_waveforms_col,:]
             elif mission == 'envisat':
                 input['waveform'] = S_waveform[index_waveforms_row, :]
             elif mission == 'cs2_lrm':

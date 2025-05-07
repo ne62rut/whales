@@ -26,16 +26,16 @@ def  instrument_parameters(mission)  :
     interpolation_factor=1    
                 
 # Mission-dependent parameters and files to be loaded
-    if mission.lower() in ['ers2','ers2_r','ers2_r_2cm']:           
+    if mission.lower() in ['ers2','ers2_r','ers2_r_2cm','ers1']:           
         tau=3.03
         Theta=1.3 *np.pi/180
         SigmaP=0.513*tau    
         nump=50
-        total_gate_number=64
         
         interpolation_factor=2
         index_originalbins=np.arange(0,63*interpolation_factor,interpolation_factor)
         total_gate_number=64*interpolation_factor
+        nominal_tracking_gate=33 
         
     if mission in ['envisat']:
         Theta=1.35 *np.pi/180 #modified http://www.aviso.oceanobs.com/fileadmin/documents/OSTST/2010/oral/PThibaut_Jason2.pdf  % The antenna 3dB bandwidth (degrees transformed in radians)
@@ -53,7 +53,8 @@ def  instrument_parameters(mission)  :
         SigmaP=0.513*tau  
         #note on the gate width: The instrument samples the waveforms with a 395 MHz clock, providing a nominal_sampling = c / 395e6 / 2 = ~0.379m (with c=speed of light). 
         Theta=1.33 *np.pi/180
-        total_gate_number=256
+        interpolation_factor=2
+        total_gate_number=256*interpolation_factor
         nominal_tracking_gate=128   
                    
     elif mission.lower() in ['altika', 'saral', 'saral_igdr']:
@@ -401,7 +402,7 @@ def  alti_read_l2hrw_cci(mission,filename):
     print('filename CCI;',filename)
     S = netCDF4.Dataset(filename, 'r')
     
-    if mission.lower() in ['jason1','jason2','jason3','saral','swot','ers2']:
+    if mission.lower() in ['jason1','jason2','jason3','saral','swot','ers2','ers1']:
     # example file='JA2_GPS_2PdP011_200_20081026_233206_20081027_002819.nc'
         swh1 = np.ma.getdata(S.variables['swh_WHALES_20hz'][:])   # this is MLE4
         sig1 = np.ma.getdata(S.variables['sigma0_WHALES_20hz'][:])  
@@ -616,6 +617,7 @@ def  processing_choices(mission)  :
 
 
     elif mission.lower() in ['ers1','ers2','ers2_r_2cm']:
+                interpolation_factor=2
                 thrb=0.7   # threshold for lowest normalized waveform value beyond which the leading edge may stop. 
                 thra=0.1
                 #noisemin=1

@@ -38,7 +38,7 @@ class Retracker_MP:
     costfunction = None
     weight_outsub = 1.
     sqrtn = np.sqrt(90.)
-    nominal_tracking_gate = 31
+    nominal_tracking_gate = None
     total_gate_number = None
     # weights = None #Weights used for the estimation of SWH
     # weights_flag = None #Flag that identifies start and end of the leading edge in the weight distribution
@@ -159,7 +159,7 @@ class Retracker_MP:
         if 'total_gate_number' in config:
             self.total_gate_number = config['total_gate_number']
         if 'nominal_tracking_gate' in config:
-            self.ominal_tracking_gate = config['nominal_tracking_gate']
+            self.nominal_tracking_gate = config['nominal_tracking_gate']
         if 'weights_type' in config:
             self.weights_type = config['weights_type']
         if 'weight_outsub' in config:

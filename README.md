@@ -1,13 +1,13 @@
 # seastatecci_whales
 
-A project for the editing and testing of the WHALES retracker.
+The WHALES retracker is an algorithm aimed at estimating the significant wave height from waveforms acquired by satellite altimeters.
 
 The code is an implementation of the algorithm described in:
 
 Passaro M. et al., 2021: Algorithm Theoretical Basis Document (ATBD), Sea State Climate Change Initiative, European Space Agency, accessible from https://climate.esa.int/media/documents/Sea_State_cci_ATBD_v3.0-signed.pdf"
 
 ## Credits: 
-Marcello Passaro (DGFI-TUM) is the author of the WHALES algorithm. The WHALES algorithm is an evolution of ALES (Passaro et al., 2014)
+Marcello Passaro (DGFI-TUM) is the author of the WHALES algorithm, with support of Paolo Cipollini (previously at National Oceanography Centre, UK, now at the European Space Agency) and Fabrice Ardhuin. The WHALES algorithm is an evolution of ALES (Passaro et al., 2014)
 
 Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mission subwaveform retracker for coastal and open ocean altimetry. Remote Sensing of Environment 145, 173-189, 10.1016/j.rse.2014.02.008, 2014
 
@@ -15,7 +15,7 @@ Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mi
 
 First, clone this repository:
 
-    $ git clone https://gitlab.ifremer.fr/cciseastate/whales               NB: this was originally cloned from!:   https://gitlab.lrz.de/ne62rut/seastatecci_whales.git
+    $ git clone https://...
 
 Go into newly created directory, to which the repository was cloned
 
@@ -34,17 +34,19 @@ Switch to into the "isolated" virtual environment
 
 ## Usage and command line options
 
-To run the retracker, open 
+The retracker shall be launched from the command line through the file python_WHALES_launcher.py with the following suggested options (sample files):
 
-    $ python_WHALES_launcher.py
+$ python python_WHALES_launcher.py -m MISSION -s 5 -i E2_REAP_ERS_ALT_2S_20000718T222234_20000718T235223_RP01.NC -o /output/
 
-Before launching it, select the following parameters: saving_directory (default is the same directory where the launcher is contained), saving_name (please do not add file extension), filename (original file to be retracked) and mission (choose between envisat, jason1, jason2, jason3, saral, cs2_lrm).
+Supported missions are: ers1, ers2, sentinel6_lrm, swot, saral, cfosat, jason1, jason2, jason3f 
+
+The parameter -s defines the size of the spatial smoothing of the waveform needed to correctly detect the leading edge. The suggested options are -s 5 for ers1 and ers2; -s 3 for sentinel6_lrm, swot, saral, cfosat. For the other missions no smoothing has been tested as yet, therefore the suggestion is not to add this parameter.
 
 The retracker code is contained in:
 
     $ WHALES_withRangeAndEpoch.py
     
-For Envisat, Saral and Cryosat-2 NO INSTRUMENTAL CORRECTION IS USED.
+For Envisat, Saral, and Cryosat-2 NO INSTRUMENTAL CORRECTION IS USED.
 For Jason-3, an instrumental correction to be ADDED to the retracked significant wave height can be added using the function 
 
     $ compute_instr_corr_SWH_WHALES.py
@@ -53,19 +55,16 @@ and an external correction model that associate each value of SWH to the correct
 
     $ SWHinstrcorr_WHALES_jason3SGDRd.mat
     
-Note that the instrumental correction is simply based on the comparison with the one applied in the MLE3 retracker of the standard product. A new correction had to be computed by PML, but the performances were worse (according to the Round Robin results). 
+Note that the instrumental correction is simply based on the comparison with the one applied in the MLE3 retracker of the standard product. 
     
     
-    
-On the display, you will see a waveform counter for each successful retrack ("Retracking waveform XXXX of YYYY"). Please note that the numbers displayed on the counter are not correct.
-The launcher will save a NetCDF file of the kind produced for the Round Robin. It can be tested to work with the following test file from Jason-3:
-
-    $ JA3_GPS_2PdP054_149_20170801_175030_20170801_184643.nc
+On the display, you will see a waveform counter for each successful retrack.
+The launcher will save a NetCDF file with the same name of the original product.
     
 
 ## Disclaimer
 
-The only parameter provided for which the author is responsible is the Significant Wave Height. Nevertheless, the only validation performed by the author is relative to Jason-3 in the framework of the Round Robin of the Sea State CCI. For the other missions, only visual test checks have been performed. The author is fully available to correct possible problems based on the feedback of the Validation Team of the Sea State CCI.
+The only parameter provided for which the author is responsible is the Significant Wave Height.
 
 Range and Backscatter Coefficients are provided without any verification.
 
