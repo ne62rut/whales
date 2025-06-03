@@ -76,7 +76,11 @@ def get_options():
     )
     parser.add_argument(
         '-s', '--smooth', type=int, default=0,
-        help='size of kernel for smoothing waveform before leading edge detection: for SARAL use 3'
+        help='size of kernel for smoothing waveform before leading edge detection: for SARAL use 3, for ERS use 5.'
+    )
+    parser.add_argument(
+        '-S', '--Smooth', type=int, default=0,
+        help='size of kernel for smoothing waveform before leading edge detection: this is for SWH-dependent smoothing applied for SWH > 8m'
     )
 
     return parser.parse_args()
@@ -90,6 +94,10 @@ costfunction = options.costfunction
 weight_outsub = options.weightoutofsub
 debug=options.debug
 smooth=options.smooth
+smooth_above_8m=options.Smooth
+smooth_SWH_val=8
+smooth_SWH_numpoints=20
+
 print('weight type:',weights_type)
 print('constfunction:',costfunction)
 print('weight out of sub:',weight_outsub)
@@ -585,6 +593,7 @@ if debug=='1':
 # Now looping over waveforms for retracking
 # First loop is on 1 Hz data, second loop is on higher rate data (20 Hz for Jason)
 #
+print('size:',np.shape(S_time)[0],np.shape(S_time)[1])
 for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
 #for index_waveforms_row in np.arange(0, 10, 1):
     print("Retracking waveform group " + str(index_waveforms_row) + "  of  " +
@@ -687,6 +696,22 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
 # Calls retracker 
 #
         retracker = WHALES_withRangeAndEpoch(input)
+#
+# Additional pass for SWH > 8 m ! activated with -S = ... 
+# first we estimate a "recent wave height" from past waveforms
+#
+        SWH1D=0.
+        if (np.shape(S_time)[1] >= 20):
+            if (index_waveforms_row >0):
+                SWH1D=np.nanmedian(swh_WHALES[index_waveforms_row-1,:])
+        if (np.shape(S_time)[1] == 1):
+            if (index_waveforms_row >=20):
+                SWH1D=np.nanmedian(swh_WHALES[index_waveforms_row-20:index_waveforms_row,:])
+# second, if this recent wave height exceeds a threshold, we retrack with smoothing as given by -S 
+        if ((smooth_above_8m > 0) & (SWH1D > smooth_SWH_val ) & (SWH1D < 30. )):
+                    input['smooth'] = smooth_above_8m
+                    input['weights_type'] = 2
+                    retracker = WHALES_withRangeAndEpoch(input)
 #
 # Post-processing
 #

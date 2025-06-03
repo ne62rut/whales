@@ -11,6 +11,10 @@ Marcello Passaro (DGFI-TUM) is the author of the WHALES algorithm, with support 
 
 Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mission subwaveform retracker for coastal and open ocean altimetry. Remote Sensing of Environment 145, 173-189, 10.1016/j.rse.2014.02.008, 2014
 
+Passaro, M., Dodet, G., Ardhuin, F., & Cipollini, P. (2025). WHALES: an optimized retracker for satellite radar altimeter waveforms in sea state applications. arXiv preprint arXiv:2505.12881.
+
+
+
 ## Getting started
 
 First, clone this repository:
@@ -60,6 +64,17 @@ Note that the instrumental correction is simply based on the comparison with the
     
 On the display, you will see a waveform counter for each successful retrack.
 The launcher will save a NetCDF file with the same name of the original product.
+
+### Optional smoothing (recommended for ERS1/2, SARAL ... and high wave height values) 
+-s : forces smoothing before leading edge detection (see Passaro et al. 2025 for details)
+-S : smoothing only for large wave heights
+The definition of the leading edge is sensitive to noise and can produce leading edges that are too short and stop before the proper end of the leading edge. Smoothing the waveform reduces that 
+sensitivity. Note that the -S option does two things (that are specific for large wave heights): 
+- smoothing the waveform
+- using theoretical weights (otherwise obtained with -w 2): this adjusts the weights beyond SWH=10 which would have been used otherwise (see Passaro et al. 2025) 
+
+### Output for debug: leading edge indices and weights
+If you want to get more information (for debug or other purposes) in the NetCDF output: the -d 1 option will add leading edge indices and weights and the waveform in the NetCDF output file
     
 
 ## Disclaimer
