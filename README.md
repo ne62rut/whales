@@ -7,11 +7,11 @@ The code is an implementation of the algorithm described in:
 Passaro M. et al., 2021: Algorithm Theoretical Basis Document (ATBD), Sea State Climate Change Initiative, European Space Agency, accessible from https://climate.esa.int/media/documents/Sea_State_cci_ATBD_v3.0-signed.pdf"
 
 ## Credits: 
-Marcello Passaro (DGFI-TUM) is the author of the WHALES algorithm, with support of Paolo Cipollini (previously at National Oceanography Centre, UK, now at the European Space Agency) and Fabrice Ardhuin (LOPS/Ifremer, Brest). The WHALES algorithm is an evolution of ALES (Passaro et al., 2014)
+- Marcello Passaro (DGFI-TUM) is the author of the WHALES algorithm, with support of Paolo Cipollini (previously at National Oceanography Centre, UK, now at the European Space Agency) and Fabrice Ardhuin (LOPS/Ifremer, Brest). The WHALES algorithm is an evolution of ALES (Passaro et al., 2014)
 
-Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mission subwaveform retracker for coastal and open ocean altimetry. Remote Sensing of Environment 145, 173-189, 10.1016/j.rse.2014.02.008, 2014
+- Passaro M., Cipollini P., Vignudelli S., Quartly G., Snaith H.: ALES: A multi-mission subwaveform retracker for coastal and open ocean altimetry. Remote Sensing of Environment 145, 173-189, 10.1016/j.rse.2014.02.008, 2014
 
-Passaro, M., Dodet, G., Ardhuin, F., & Cipollini, P. (2025). WHALES: an optimized retracker for satellite radar altimeter waveforms in sea state applications. arXiv preprint arXiv:2505.12881.
+- Passaro, M., Dodet, G., Ardhuin, F., & Cipollini, P. (2025). WHALES: an optimized retracker for satellite radar altimeter waveforms in sea state applications. arXiv preprint arXiv:2505.12881.
 
 
 
@@ -19,7 +19,7 @@ Passaro, M., Dodet, G., Ardhuin, F., & Cipollini, P. (2025). WHALES: an optimize
 
 First, clone this repository:
 
-    $ git clone https://...
+    $ git clone https://github.com/ne62rut/whales
 
 Go into newly created directory, to which the repository was cloned
 
@@ -67,11 +67,17 @@ The launcher will save a NetCDF file with the same name of the original product.
 
 ### Optional smoothing (recommended for ERS1/2, SARAL ... and high wave height values) 
 -s : forces smoothing before leading edge detection (see Passaro et al. 2025 for details)
--S : smoothing only for large wave heights
+
+-S : smoothing before leading edge detection but only for large wave heights
 The definition of the leading edge is sensitive to noise and can produce leading edges that are too short and stop before the proper end of the leading edge. Smoothing the waveform reduces that 
 sensitivity. Note that the -S option does two things (that are specific for large wave heights): 
 - smoothing the waveform
 - using theoretical weights (otherwise obtained with -w 2): this adjusts the weights beyond SWH=10 which would have been used otherwise (see Passaro et al. 2025) 
+
+Here are some examples: with smoothing for Jason-3 but only for SWH > 8 m: 
+
+    $ python my_folder/src/python_WHALES_launcher.py -m jason3f -i JA3_GPS_2PfP180_122_20210101_012654_20210101_022307.nc  -S 3 -o TEST_v5b
+
 
 ### Output for debug: leading edge indices and weights
 If you want to get more information (for debug or other purposes) in the NetCDF output: the -d 1 option will add leading edge indices and weights and the waveform in the NetCDF output file
