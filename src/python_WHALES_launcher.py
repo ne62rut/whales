@@ -166,7 +166,13 @@ if mission in ['jason1', 'jason2', 'jason3']:
     S_lat = np.ma.getdata(S.variables['lat_20hz'][:])
     S_lon = np.ma.getdata(S.variables['lon_20hz'][:])
     S_landmask = np.ma.getdata(S.variables['surface_type'][:])
-    S_offnadir = np.ma.getdata(S.variables['off_nadir_angle_wf_20hz_ku'][:])
+    if 'off_nadir_angle_wf_20hz_ku' in S.variables:
+        S_offnadir = np.ma.getdata(S.variables['off_nadir_angle_wf_20hz_ku'][:])
+    else:
+        S_offnadir = np.ma.getdata(
+            S.variables['off_nadir_angle_wf_ku'][:])
+        S_offnadir = np.transpose(np.tile(S_offnadir, (np.shape(S_time)[1], 1)))
+
     S_atmos_corr = np.ma.getdata(S.variables['atmos_corr_sig0_ku'][:])
     # This field is at 1-Hz, so it has to be reshaped
     S_atmos_corr = np.transpose(np.tile(S_atmos_corr, (np.shape(S_time)[1], 1)))
@@ -616,6 +622,12 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
                     index_waveforms_row, index_waveforms_col, :] / filter_norm[11:115]
             elif mission == 'jason2':
                 pathcal=os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/cal2/J2_MeanFilterKu')
+                filter = np.loadtxt(pathcal)
+                filter_norm = filter / np.mean(filter[11:115])
+                input['waveform'] = S_waveform[
+                    index_waveforms_row, index_waveforms_col, :] / filter_norm[11:115]
+            elif mission == 'jason1':
+                pathcal=os.path.join(os.path.abspath(os.path.dirname(__file__)), '../data/cal2/J1_MeanFilterKu')
                 filter = np.loadtxt(pathcal)
                 filter_norm = filter / np.mean(filter[11:115])
                 input['waveform'] = S_waveform[
