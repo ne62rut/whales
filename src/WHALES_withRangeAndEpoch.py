@@ -23,15 +23,16 @@ Modification history:
 
 from Retracker_MP    import *
 from altimeters_parameters import processing_choices
-from waveform_models import waveform_brown_LS,waveform_brown_ML,wf_brown_eval
+from waveform_models import waveform_brown_LS,waveform_brown_ML,wf_brown_eval,brown_model,brown_residuals
 import scipy
 from scipy           import stats
 import cmath #handling of complex square root
 from scipy           import optimize
-from scipy.optimize  import minimize
+from scipy.optimize  import minimize,least_squares
 from scipy           import special
 from scipy           import signal
 from math            import erf
+from types import SimpleNamespace
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,6 +46,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
     def __init__(self,config):
         Retracker_MP.__init__(self, config)
         self.retrack_MP()
+
+ 
 
 
     def NM_fit(self,xdata,ydata,Zeta,tau,Theta,SigmaP,altitude,initial_conditions,mission,weights,weightflag,modelcost,estimator) :
@@ -63,6 +66,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
             #5) SWH: Significant Wave Height
         
         # WARNING: ZETA is xi converted to radians 
+             
         
         incognita=initial_conditions
         
@@ -80,11 +84,62 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         c_xi=c_xi/1000000000 #1/ns
 
 
+        # ----------------------------------------------
+        # CHOOSE ESTIMATOR
+        # ----------------------------------------------
+
+        # Choose cost function (LS or ML)
         if modelcost == 'brown_LS':
-           if estimator == 'NM':
-            xopt = minimize(waveform_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
+            costfun = waveform_brown_LS
         elif modelcost == 'brown_ML':
-           xopt = minimize(waveform_brown_ML, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
+            costfun = waveform_brown_ML
+        else:
+            raise ValueError("Unknown modelcost")
+
+        args_tuple = (ydata, Gamma, Zeta, xdata, SigmaP, c_xi, weights, weightflag)
+
+        # ---------------------------
+        # 1) Nelder–Mead
+        # ---------------------------
+        if estimator == 'NM':
+            xopt = minimize(
+                costfun,
+                incognita,
+                args=(args_tuple,),
+                method='Nelder-Mead',
+                options={'disp': False}
+            )
+
+        # ---------------------------
+        # 2) Levenberg–Marquardt
+        # ---------------------------
+
+
+        elif estimator == 'LM':
+            xls = least_squares(
+                brown_residuals,
+                incognita,
+                method='lm',
+                args=(args_tuple, weights, weightflag)
+            )
+            xopt = SimpleNamespace(x=xls.x, success=xls.success)
+
+        elif estimator == 'GN':
+            xls = least_squares(
+                brown_residuals,
+                incognita,
+                method='trf',
+                loss='linear',
+                args=(args_tuple, weights, weightflag)
+            )
+            xopt = SimpleNamespace(x=xls.x, success=xls.success)
+
+        # ---------------------------
+        # Unknown estimator
+        # ---------------------------
+        else:
+            raise ValueError("unknown estimator (expected NM, LM, or GN)")
+        
 
         
         if xopt.success == True:

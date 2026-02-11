@@ -97,4 +97,73 @@ def  waveform_brown_ML(incognita,data)  :
      
      return cy
 
+def brown_model(x, data):
+    """
+    Compute the theoretical Brown-Hayne model waveform for a given parameter
+    vector x = [epoch, sigma, amplitude].
 
+    This function extracts all physical/geophysical parameters from args_tuple
+    and evaluates the Brown functional form (leading edge + trailing edge)
+    used in classical ocean altimetry retracking.
+
+    Parameters
+    ----------
+    x : array_like, shape (3,)
+        Model parameters:
+        - x[0]: epoch (in nanoseconds)
+        - x[1]: sigma (leading edge rise time)
+        - x[2]: amplitude of the waveform
+
+    data : tuple
+        Contains the waveform data and auxiliary constants:
+        (ydata, Gamma, Zeta, xdata, SigmaP, c_xi, weights, weightflag)
+
+    Returns
+    -------
+    fff : ndarray
+        The modeled Brown-Hayne waveform evaluated at xdata.
+    """    
+    ydata = data[0]
+    Gamma = data[1]
+    Zeta  = data[2]
+    xdata = data[3]
+    SigmaP= data[4]
+    c_xi  = data[5]
+
+    # Build the Brown model waveform fff
+    fff = ( x[2]/2*np.exp((-4/Gamma)*(np.sin(Zeta))**2)
+        * np.exp(-c_xi * ((xdata - x[0]) - c_xi * x[1]**2 / 2))
+        * (1 + scipy.special.erf(((xdata - x[0]) - c_xi * x[1]**2)
+                                 / (np.sqrt(2)*x[1])))
+    )
+    return fff
+
+def brown_residuals(x, data):
+    """
+    Residual vector for Levenberg-Marquardt or Gauss-Newton optimization.
+
+    Computes the pointwise difference between the observed waveform ydata
+    and the theoretical Brown-Hayne model waveform produced by brown_model(),
+    optionally applying user-supplied weights.
+
+    This function returns the residual vector required by
+    scipy.optimize.least_squares().
+
+    Parameters
+    ----------
+    x : array_like, shape (3,)
+        Current estimate of the model parameters.
+
+    data : tuple
+        Same tuple passed to brown_model():
+        (ydata, Gamma, Zeta, xdata, SigmaP, c_xi, weights, weightflag)
+
+    Returns
+    -------
+    residuals : ndarray
+        The weighted or unweighted residuals: (ydata - model).
+    """
+    ydata = data[0]
+    fff   = brown_model(x, data)
+    resid = ydata - fff
+    return resid * weights if weightflag else resid
