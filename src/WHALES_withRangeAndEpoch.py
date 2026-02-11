@@ -47,7 +47,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
         self.retrack_MP()
 
 
-    def NM_fit(self,xdata,ydata,Zeta,tau,Theta,SigmaP,altitude,initial_conditions,mission,weights,weightflag,modelcost) :
+    def NM_fit(self,xdata,ydata,Zeta,tau,Theta,SigmaP,altitude,initial_conditions,mission,weights,weightflag,modelcost,estimator) :
         #Nelder-Mead fit of a waveform 
     
         #IT NEEDS:
@@ -81,7 +81,8 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
 
         if modelcost == 'brown_LS':
-           xopt = minimize(waveform_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
+           if estimator == 'NM':
+            xopt = minimize(waveform_brown_LS, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
         elif modelcost == 'brown_ML':
            xopt = minimize(waveform_brown_ML, incognita, args=((ydata,Gamma,Zeta,xdata,SigmaP,c_xi,weights,weightflag),) ,method='Nelder-Mead',options={'disp': False})
 
@@ -357,7 +358,7 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                 x1_yang, Wt_yang, exitflag_yang, Err, SWH =\
                         self.NM_fit( xdata[startgate:gate2+growingdue+1] , D[startgate:gate2+growingdue+1],\
                         self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,\
-                        np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag,modelcost='brown_LS')
+                        np.array([x_initial, sigma_initial, ampl_initial]),mission,this_weights[startgate:gate2+growingdue+1],weightflag,modelcost='brown_LS',estimator=self.estimator)
                 
                 #print('startgate',startgate)
                 #print('gate2+growingdue+1',gate2+growingdue+1)
@@ -588,11 +589,11 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
                             if self.costfunction == 'LS':
                                 x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NM_fit( xdata[startgate:stopgate+growingdue+1] , \
                                 D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,tau,self.Theta,self.SigmaP,self.hsat,np.array([x_initial, sigma_initial, \
-                                ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag,modelcost='brown_LS')
+                                ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag,modelcost='brown_LS',estimator=self.estimator)
                             else:
                                 x1_LESfive, Wt_LESfive, exitflag_LESfive, Err, SWH =self.NM_fit( xdata[startgate:stopgate+growingdue+1] , \
                                 D[startgate:stopgate+growingdue+1],self.xi*math.pi/180,self.tau,self.Theta,self.SigmaP,self.hsat,np.array([x_initial, sigma_initial, \
-                                ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag,modelcost='brown_ML')
+                                ampl_initial]),mission,this_weights[startgate:stopgate+growingdue+1],weightflag,modelcost='brown_ML',estimator=self.estimator)
                             
                                      
                             self.Wt_all_LESfive[startgate:stopgate+growingdue+1]=Wt_LESfive  #This is the fitted subwaveform

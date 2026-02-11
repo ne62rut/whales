@@ -16,6 +16,7 @@ python python_WHALES_launcher.py -m swot -s 3 -w 2  -i SWOT_GPS_2PfP012_567_2024
 
         2024-07-19: added possibility to use 1/waveform for the weights               : F. Ardhuin
 	2024-12-20: adds optional smoothing (gives better results for SARAL and SWOT) : M. De Carlo, F. Ardhuin
+    2026-02-11: adds different options for estimator (Nelder Mead, LM, Gauss Newton)
 """
 
 import argparse
@@ -82,7 +83,10 @@ def get_options():
         '-S', '--Smooth', type=int, default=0,
         help='size of kernel for smoothing waveform before leading edge detection: this is for SWH-dependent smoothing applied for SWH > 8m'
     )
-
+    parser.add_argument(
+        '-e', '--estimator', type=str, default='NM',
+        help='estimator method: NM (Nelder-Mead), LM (Levenberg-Marquardt), GN (Gauss-Newton). Default: NM'
+    )
     return parser.parse_args()
 
 
@@ -97,10 +101,12 @@ smooth=options.smooth
 smooth_above_8m=options.Smooth
 smooth_SWH_val=8
 smooth_SWH_numpoints=20
+estimator=options.estimator
 
 print('weight type:',weights_type)
 print('constfunction:',costfunction)
 print('weight out of sub:',weight_outsub)
+print('estimator:',estimator)
 saving_directory = options.output
 
 saving_name = os.path.join(saving_directory, os.path.basename(filename))
@@ -556,6 +562,7 @@ if debug=='1':
 
 # global attributes: 
 w_nc_fid.smooth=smooth
+w_nc_fid.estimator=estimator
 w_nc_fid.weight_outsub=weight_outsub
 w_nc_fid.ALEScoeff0=ALEScoeff0
 w_nc_fid.ALEScoeff1=ALEScoeff1
@@ -704,6 +711,7 @@ for index_waveforms_row in np.arange(0,np.shape(S_time)[0], 1):
         input['nominal_tracking_gate']=nominal_tracking_gate
         input['weight_outsub']  = weight_outsub
         input['smooth'] = smooth
+        input['estimator'] = estimator
 #
 # Calls retracker 
 #

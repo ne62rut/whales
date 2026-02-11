@@ -169,6 +169,10 @@ class Retracker_MP:
         if 'smooth' in config:
             self.smooth = config['smooth']
 
+        #Estimator option
+        if 'estimator' in config:
+            self.estimator = config['estimator']        
+
         ' debug flag '
         if 'debug' in config:
             self.debug = int(config['debug'])

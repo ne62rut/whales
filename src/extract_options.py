@@ -56,6 +56,16 @@ def get_options():
         '-o', '--output', type=str, default='.',
         help='path to the output repository'
     )
+
+
+    # estimator
+    parser.add_argument(
+        '-e', '--estimator', type=str,
+        choices=['NM', 'LM', 'GN'],
+        default='NM',
+        help='estimator method: NM (Nelder-Mead), LM (Levenberg-Marquardt), GN (Gauss-Newton). Default: NM'
+    )
+
     return parser.parse_args()
 
 
