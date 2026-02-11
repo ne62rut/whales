@@ -138,7 +138,7 @@ def brown_model(x, data):
     )
     return fff
 
-def brown_residuals(x, data):
+def brown_residuals(x, data, weights, weightflag):
     """
     Residual vector for Levenberg-Marquardt or Gauss-Newton optimization.
 
