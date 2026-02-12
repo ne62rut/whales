@@ -98,6 +98,11 @@ class WHALES_withRangeAndEpoch(Retracker_MP):
 
         args_tuple = (ydata, Gamma, Zeta, xdata, SigmaP, c_xi, weights, weightflag)
 
+        # If waveform segment is too short, LM/GN cannot run because 'lm' doesn't work when the number of residuals is less than the number of variables.
+        if estimator == "LM" and ydata.size < 3:
+            print('Segment is too short, switching to Nelder-Mead')
+            estimator = "NM"        
+
         # ---------------------------
         # 1) Nelder–Mead
         # ---------------------------

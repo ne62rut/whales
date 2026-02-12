@@ -163,7 +163,37 @@ def brown_residuals(x, data, weights, weightflag):
     residuals : ndarray
         The weighted or unweighted residuals: (ydata - model).
     """
+#    ydata = data[0]
+#    fff   = brown_model(x, data)
+#    resid = ydata - fff
+#    return resid * weights if weightflag else resid
+
     ydata = data[0]
-    fff   = brown_model(x, data)
+
+    # -------------------------------------------
+    # SAFETY 1 — sigma must be positive & non-zero
+    # -------------------------------------------
+    if x[1] <= 0:
+        return np.full_like(ydata, 1e10)
+
+    # -------------------------------------------
+    # Compute model waveform
+    # -------------------------------------------
+    fff = brown_model(x, data)
+
+    # -------------------------------------------
+    # SAFETY 2 — model must be finite
+    # -------------------------------------------
+    if not np.all(np.isfinite(fff)):
+        return np.full_like(ydata, 1e10)
+
+    # -------------------------------------------
+    # Residual computation
+    # -------------------------------------------
     resid = ydata - fff
+
     return resid * weights if weightflag else resid
+
+
+
+
