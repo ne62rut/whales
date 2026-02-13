@@ -192,7 +192,7 @@ def brown_residuals(x, data, weights, weightflag):
     # -------------------------------------------
     resid = ydata - fff
 
-    return resid * weights if weightflag else resid
+    return np.sqrt(weights) * resid
 
 
 
