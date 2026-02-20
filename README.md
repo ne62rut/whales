@@ -46,6 +46,8 @@ Supported missions are: ers1, ers2, sentinel6_lrm, swot, saral, cfosat, jason1, 
 
 The parameter -s defines the size of the spatial smoothing of the waveform needed to correctly detect the leading edge. The suggested options are -s 5 for ers1 and ers2; -s 3 for sentinel6_lrm, swot, saral, cfosat. For the other missions no smoothing has been tested as yet, therefore the suggestion is not to add this parameter.
 
+The parameter -e can be added to switch estimators. Inputs can be "-e NM" for Nelder-Mead (the default), "-e LM" for Levenberg-Marquardt and "-e GN" for Gauss-Newton. 
+
 The retracker code is contained in:
 
     $ WHALES_withRangeAndEpoch.py
@@ -66,7 +68,7 @@ On the display, you will see a waveform counter for each successful retrack.
 The launcher will save a NetCDF file with the same name of the original product.
 
 ### Optional smoothing (recommended for ERS1/2, SARAL ... and high wave height values) 
--s : forces smoothing before leading edge detection (see Passaro et al. 2025 for details)
+-s : forces smoothing before leading edge detection (see Passaro et al. 2026 for details)
 
 -S : smoothing before leading edge detection but only for large wave heights
 The definition of the leading edge is sensitive to noise and can produce leading edges that are too short and stop before the proper end of the leading edge. Smoothing the waveform reduces that 
@@ -97,6 +99,7 @@ The WHALES Range of Cryosat-2 is provided using as on-board tracker the window d
 
 ## Known Issues
 
+- The use of Levemberg-Marquardt and Gauss-Newton produces additional open ocean outliers in the current implementation. This is likely to be due to the fact that these methods work at best when the size of the residual vector is much bigger than the size of the unknown vector, which is not an ideal setting for a subwaveform retracker
 
 
 

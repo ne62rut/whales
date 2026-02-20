@@ -16,6 +16,7 @@ Modification history:
         2024-06-30: adaptation for wavesALTI package by F. Ardhuin 
         2024-07-19: added possibility to use 1/waveform for the weights
         2024-12-19: export of gate1, gate2 and gate3 indices, clean-up
+        2026-02   : added possibility to use Levemberg-Marquardt or Gauss-Newton instead of Nelder-Mead
 
 
 """

@@ -102,7 +102,7 @@ def brown_model(x, data):
     Compute the theoretical Brown-Hayne model waveform for a given parameter
     vector x = [epoch, sigma, amplitude].
 
-    This function extracts all physical/geophysical parameters from args_tuple
+    This function extracts all physical/geophysical parameters from data tuple
     and evaluates the Brown functional form (leading edge + trailing edge)
     used in classical ocean altimetry retracking.
 
@@ -163,10 +163,7 @@ def brown_residuals(x, data, weights, weightflag):
     residuals : ndarray
         The weighted or unweighted residuals: (ydata - model).
     """
-#    ydata = data[0]
-#    fff   = brown_model(x, data)
-#    resid = ydata - fff
-#    return resid * weights if weightflag else resid
+
 
     ydata = data[0]
 
